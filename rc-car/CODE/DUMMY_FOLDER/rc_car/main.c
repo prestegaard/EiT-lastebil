@@ -20,69 +20,139 @@
  * This file contains the source code for a sample application using PWM.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "app_util_platform.h"
-#include "app_error.h"
+
 #include "boards.h"
-#include "bsp.h"
-#include "app_timer.h"
-#include "nrf_drv_clock.h"
-#define NRF_LOG_MODULE_NAME "APP"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-#include "rc_motor.h"
+
+#include "app_uart.h"
+#include "app_error.h"
+
 #include "nrf_delay.h"
+#include "nrf.h"
+
+#include "bsp.h"
+
+#define NRF_LOG_MODULE_NAME "TRUCK 1"
+
+#include "rc_motor.h"
+
+#define MAX_TEST_DATA_BYTES     (15U)                /**< max number of test bytes to be used for tx and rx. */
+#define UART_TX_BUF_SIZE 256                         /**< UART TX buffer size. */
+#define UART_RX_BUF_SIZE 256                         /**< UART RX buffer size. */
+
+
+void leds_init(){
+    nrf_gpio_pin_dir_set(17, NRF_GPIO_PIN_DIR_OUTPUT); 
+    nrf_gpio_pin_dir_set(18, NRF_GPIO_PIN_DIR_OUTPUT); 
+    nrf_gpio_pin_dir_set(19, NRF_GPIO_PIN_DIR_OUTPUT); 
+    nrf_gpio_pin_dir_set(20, NRF_GPIO_PIN_DIR_OUTPUT); 
+}
+
+void set_led(uint32_t number){
+    nrf_gpio_pin_clear(number);
+}
+
+
+void clear_led(uint32_t number){
+    nrf_gpio_pin_set(number);
+}
+
+void unit_test_motor(){
+    // DISABLE LEFT MOTOR
+    motor_set_speed(LEFT, 0);
+
+    // RIGHT MOTOR FORWARD
+    motor_set_dir(RIGHT, FORWARD);
+    motor_set_speed(RIGHT, 200);
+    motor_start();
+    nrf_delay_ms(1000);
+    motor_set_speed(RIGHT, 500);
+    nrf_delay_ms(1000);
+
+    // RIGHT MOTOR BACKWARD
+    motor_set_dir(RIGHT, BACKWARD);
+    nrf_delay_ms(1000);
+    motor_set_speed(RIGHT, 200);
+    nrf_delay_ms(1000);
+
+    // PAUSE
+    motor_stop();
+    nrf_delay_ms(1000);
+
+    // DISABLE RIGHT MOTOR
+    motor_set_speed(RIGHT, 0);
+
+    // LEFT MOTOR FORWARD 
+    motor_set_dir(LEFT, FORWARD);
+    motor_set_speed(LEFT, 200);
+    motor_start();
+    nrf_delay_ms(1000);
+    motor_set_speed(LEFT, 500);
+    nrf_delay_ms(1000);
+
+    // LEFT MOTOR BACKWARD
+    motor_set_dir(LEFT, BACKWARD);
+    nrf_delay_ms(1000);     
+    motor_set_speed(LEFT, 200);
+    nrf_delay_ms(1000);
+    motor_stop();
+}
 
 
 
-
-
-
-
-void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
-{
-	#ifdef DEBUG
-	app_error_print(id, pc, info);
-	#endif
-
-	bsp_board_leds_on();
-	app_error_save_and_stop(id, pc, info);
+void uart_error_handle(app_uart_evt_t * p_event){
+    if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
+    {
+        APP_ERROR_HANDLER(p_event->data.error_communication);
+    }
+    else if (p_event->evt_type == APP_UART_FIFO_ERROR)
+    {
+        APP_ERROR_HANDLER(p_event->data.error_code);
+    }
 }
 
 
 int main(void)
 {
-	nrf_gpio_pin_dir_set(17, NRF_GPIO_PIN_DIR_OUTPUT); 
-	nrf_gpio_pin_set(17);
+    leds_init();
+    uint32_t err_code;
+    const app_uart_comm_params_t comm_params = {
+        RX_PIN_NUMBER,
+        TX_PIN_NUMBER,
+        RTS_PIN_NUMBER,
+        CTS_PIN_NUMBER,
+        APP_UART_FLOW_CONTROL_ENABLED,
+        false,
+        UART_BAUDRATE_BAUDRATE_Baud115200
+    };
 
+    APP_UART_FIFO_INIT(&comm_params,
+                         UART_RX_BUF_SIZE,
+                         UART_TX_BUF_SIZE,
+                         uart_error_handle,
+                         APP_IRQ_PRIORITY_LOW,
+                         err_code);
 
-	NRF_LOG_INFO("PWM example\r\n");
-	motor_init();
-	motor_set_dir(LEFT, FORWARD);
-	motor_set_dir(RIGHT, BACKWARD);
+    APP_ERROR_CHECK(err_code);
+    
+    printf("\r\nStart: \r\n");
 
-//	nrf_gpio_pin_dir_set(11, NRF_GPIO_PIN_DIR_OUTPUT); 
-//	nrf_gpio_pin_dir_set(12, NRF_GPIO_PIN_DIR_OUTPUT); 
-//	nrf_gpio_pin_dir_set(13, NRF_GPIO_PIN_DIR_OUTPUT); 
-//	nrf_gpio_pin_set(11);
-//	nrf_gpio_pin_clear(12);
-//	nrf_gpio_pin_set(13);
-	motor_set_speed(RIGHT, 511);
-	motor_set_speed(LEFT, 511);
-	motor_start();
-	nrf_gpio_pin_clear(17);
-	nrf_delay_ms(200);
-	//nrf_gpio_pin_set(motor_pwm_b);
-	for (;;){
-		/*
-		nrf_gpio_pin_set(17);
-		nrf_delay_ms(1500);
-		//nrf_gpio_pin_set(17);
-		motor_set_speed(RIGHT, 7000);
-		nrf_delay_ms(1500);
-		*/
-		}
+    motor_init();
+    motor_set_speed(RIGHT, 500);    
+    motor_start();
+   // unit_test_motor();
+    uint32_t i = 0;
+    for (;;){
+    //    uint8_t cr;
+    //    while (app_uart_get(&cr) != NRF_SUCCESS);
+    //    while (app_uart_put(cr) != NRF_SUCCESS);
+        nrf_delay_ms(1000);
+        printf("i = %d \r\n", i);
+        i++;
+      }
 }
 
 
