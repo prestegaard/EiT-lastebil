@@ -68,7 +68,8 @@ void motor_init(){
     err_code = nrf_drv_pwm_init(&m_pwm0, &config0, NULL);
     APP_ERROR_CHECK(err_code);
     //set defaulult direction forward
-    //motor_set_dir(BOTH, FORWARD);
+    motor_set_dir(BOTH, FORWARD);
+    motor_set_speed(BOTH, 0);
 }
 
 void motor_set_dir(uint32_t side, uint32_t dir){
@@ -98,11 +99,13 @@ void motor_set_dir(uint32_t side, uint32_t dir){
     for (uint32_t i=0; i<num_of_sides; i++){
         switch (dir) {
                 case FORWARD :
-                    nrf_gpio_pin_set(motor_1);
                     nrf_gpio_pin_clear(motor_2);
+                    nrf_delay_ms(1);
+                    nrf_gpio_pin_set(motor_1);
                     break;
                 case BACKWARD :
                     nrf_gpio_pin_clear(motor_1);
+                    nrf_delay_ms(1);
                     nrf_gpio_pin_set(motor_2);
                     break;
         }
@@ -115,7 +118,12 @@ void motor_set_dir(uint32_t side, uint32_t dir){
     //motor_start();
 }
 void motor_set_speed(uint32_t side, uint32_t speed){
-    if (side == RIGHT)
+    if (side == BOTH){
+        m_demo1_seq_values.channel_0 = PWM_TOP_VALUE - speed;
+        m_demo1_seq_values.channel_2 = PWM_TOP_VALUE - speed;
+    }
+
+    else if (side == RIGHT)
         m_demo1_seq_values.channel_0 = PWM_TOP_VALUE - speed;
     else if (side == LEFT)
         m_demo1_seq_values.channel_2 = PWM_TOP_VALUE - speed;
@@ -130,3 +138,6 @@ void motor_start(){
 void motor_stop(){
     nrf_drv_pwm_stop(&m_pwm0, true); //stop pwm and wait until it is stopped, henvce true
 }
+
+/** @} */
+
