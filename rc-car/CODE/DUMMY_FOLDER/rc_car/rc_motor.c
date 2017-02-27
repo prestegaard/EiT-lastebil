@@ -1,11 +1,12 @@
-#include "nrf_gpio.h"
-#include "nrf_drv_pwm.h"
-#include "nrf_delay.h"
-
 #include <stdio.h>
 #include <string.h>
 #include "app_util_platform.h"
 #include "app_error.h"
+
+#include "nrf_gpio.h"
+#include "nrf_drv_pwm.h"
+#include "nrf_delay.h"
+
 #include "rc_motor.h"
 
 
