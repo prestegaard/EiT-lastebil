@@ -4,6 +4,7 @@
 
 void unit_test_motor(void);
 void unit_test_ultrasound(void);
+void unit_test_saadc(void);
 #endif // RC_UNIT_TEST__
 
 /** @} */

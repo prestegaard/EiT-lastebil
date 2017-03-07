@@ -38,7 +38,7 @@ uint32_t ultrasound_get_distance(){
     uint32_t pulse_stop_time = read_from_reg(SYSTICK_CVR);
     // Disable counter
     *SYSTICK_CSR &= ~(1 << 0);
-    printf("Start: %d\tStop: %d\tDiff: %d\t \r\n", pulse_start_time, pulse_stop_time, pulse_start_time-pulse_stop_time);
+//    printf("Start: %d\tStop: %d\tDiff: %d\t \r\n", pulse_start_time, pulse_stop_time, pulse_start_time-pulse_stop_time);
     // Calculate distance in mm
     uint32_t pulse_in_us = (pulse_start_time-pulse_stop_time)/64;
     // Mult by 10 to get mm, divide by 58 gives cm
@@ -46,4 +46,3 @@ uint32_t ultrasound_get_distance(){
 }
 
 /** @} */
-            

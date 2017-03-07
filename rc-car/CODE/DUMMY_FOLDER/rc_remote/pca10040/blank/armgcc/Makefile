@@ -23,7 +23,11 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+  $(SDK_ROOT)/components/drivers_nrf/hal/nrf_saadc.c \
+  $(SDK_ROOT)/components/drivers_nrf/ppi/nrf_drv_ppi.c \
   $(SDK_ROOT)/components/drivers_nrf/pwm/nrf_drv_pwm.c \
+  $(SDK_ROOT)/components/drivers_nrf/saadc/nrf_drv_saadc.c \
+  $(SDK_ROOT)/components/drivers_nrf/timer/nrf_drv_timer.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
   $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd/nrf_nvic.c \
   $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd/nrf_soc.c \
@@ -33,7 +37,8 @@ SRC_FILES += \
   $(PROJ_DIR)/rc_uart.c \
   $(PROJ_DIR)/rc_motor.c \
   $(PROJ_DIR)/rc_ultrasound.c \
-   $(PROJ_DIR)/rc_unit_test.c \
+  $(PROJ_DIR)/rc_unit_test.c \
+  $(PROJ_DIR)/rc_saadc.c \
   $(SDK_ROOT)/external/segger_rtt/RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -52,10 +57,14 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/drivers_nrf/delay \
   $(SDK_ROOT)/components/toolchain/cmsis/include \
   $(SDK_ROOT)/components/libraries/util \
+  $(SDK_ROOT)/components/drivers_nrf/hal \
+  $(SDK_ROOT)/components/drivers_nrf/saadc \
+  $(SDK_ROOT)/components/drivers_nrf/timer \
   $(SDK_ROOT)/components/drivers_nrf/pwm \
   $(SDK_ROOT)/components/drivers_nrf/uart \
   $(SDK_ROOT)/components/libraries/bsp \
   $(SDK_ROOT)/components/device \
+  $(SDK_ROOT)/components/drivers_nrf/ppi \
   $(SDK_ROOT)/components/libraries/log \
   $(SDK_ROOT)/components/libraries/button \
   $(SDK_ROOT)/components/libraries/timer \
@@ -64,7 +73,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd \
   ../config \
   $(SDK_ROOT)/components/boards \
-  $(SDK_ROOT)/components/drivers_nrf/hal \
   $(SDK_ROOT)/components/toolchain/gcc \
   $(SDK_ROOT)/components/toolchain \
   $(SDK_ROOT)/components/drivers_nrf/common \
