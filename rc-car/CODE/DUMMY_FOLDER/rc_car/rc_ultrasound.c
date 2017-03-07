@@ -46,4 +46,3 @@ uint32_t ultrasound_get_distance(){
 }
 
 /** @} */
-            

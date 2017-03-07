@@ -10,7 +10,7 @@
       <TargetName>nrf52832_xxaa</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060300::V5.06 update 3 (build 300)::ARMCC</pCCUsed>
+      <pCCUsed>5060061::V5.06 update 1 (build 61)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>nRF52832_xxAA</Device>
@@ -125,6 +125,47 @@
             <HexOffset>0</HexOffset>
             <Oh166RecLen>16</Oh166RecLen>
           </OPTHX>
+          <Simulator>
+            <UseSimulator>0</UseSimulator>
+            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
+            <RunToMain>1</RunToMain>
+            <RestoreBreakpoints>1</RestoreBreakpoints>
+            <RestoreWatchpoints>1</RestoreWatchpoints>
+            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
+            <RestoreFunctions>1</RestoreFunctions>
+            <RestoreToolbox>1</RestoreToolbox>
+            <LimitSpeedToRealTime>0</LimitSpeedToRealTime>
+            <RestoreSysVw>1</RestoreSysVw>
+          </Simulator>
+          <Target>
+            <UseTarget>1</UseTarget>
+            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
+            <RunToMain>1</RunToMain>
+            <RestoreBreakpoints>1</RestoreBreakpoints>
+            <RestoreWatchpoints>1</RestoreWatchpoints>
+            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
+            <RestoreFunctions>0</RestoreFunctions>
+            <RestoreToolbox>1</RestoreToolbox>
+            <RestoreTracepoints>0</RestoreTracepoints>
+            <RestoreSysVw>1</RestoreSysVw>
+          </Target>
+          <RunDebugAfterBuild>0</RunDebugAfterBuild>
+          <TargetSelection>6</TargetSelection>
+          <SimDlls>
+            <CpuDll></CpuDll>
+            <CpuDllArguments></CpuDllArguments>
+            <PeripheralDll></PeripheralDll>
+            <PeripheralDllArguments></PeripheralDllArguments>
+            <InitializationFile></InitializationFile>
+          </SimDlls>
+          <TargetDlls>
+            <CpuDll></CpuDll>
+            <CpuDllArguments></CpuDllArguments>
+            <PeripheralDll></PeripheralDll>
+            <PeripheralDllArguments></PeripheralDllArguments>
+            <InitializationFile></InitializationFile>
+            <Driver>Segger\JL2CM3.dll</Driver>
+          </TargetDlls>
         </DebugOption>
         <Utilities>
           <Flash1>
@@ -328,14 +369,11 @@
             <v6LangP>0</v6LangP>
             <vShortEn>0</vShortEn>
             <vShortWch>0</vShortWch>
-            <v6Lto>0</v6Lto>
-            <v6WtE>0</v6WtE>
-            <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
               <Define>NRF52832 NRF52 BOARD_PCA10040 NRF52_PAN_12 NRF52_PAN_15 NRF52_PAN_20 NRF52_PAN_31 CONFIG_GPIO_AS_PINRESET NRF52_PAN_36 NRF52_PAN_51 NRF52_PAN_54 NRF52_PAN_55 NRF52_PAN_58 NRF52_PAN_64 SWI_DISABLE0</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\config\pwm_driver_pca10040;..\..\..\config;..\..\..\..\..\..\components;..\..\..\..\..\..\components\boards;..\..\..\..\..\..\components\drivers_nrf\clock;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\drivers_nrf\delay;..\..\..\..\..\..\components\drivers_nrf\gpiote;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\drivers_nrf\nrf_soc_nosd;..\..\..\..\..\..\components\drivers_nrf\pwm;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\libraries\bsp;..\..\..\..\..\..\components\libraries\fifo;..\..\..\..\..\..\components\libraries\button;..\..\..\..\..\..\components\libraries\log;..\..\..\..\..\..\components\libraries\log\src;..\..\..\..\..\..\components\libraries\timer;..\..\..\..\..\..\components\libraries\uart;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\toolchain;..\..\..\..\..\bsp;..\..\..;..\..\..\..\..\..\external\segger_rtt;..\config;..\..\..\..\..\..\components\drivers_nrf\saadc;..\..\..\..\..\..\components\drivers_nrf\timer</IncludePath>
+              <IncludePath>..\..\..\config\pwm_driver_pca10040;..\..\..\config;..\..\..\..\..\..\components;..\..\..\..\..\..\components\boards;..\..\..\..\..\..\components\drivers_nrf\clock;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\drivers_nrf\delay;..\..\..\..\..\..\components\drivers_nrf\gpiote;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\drivers_nrf\nrf_soc_nosd;..\..\..\..\..\..\components\drivers_nrf\pwm;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\libraries\bsp;..\..\..\..\..\..\components\libraries\fifo;..\..\..\..\..\..\components\libraries\button;..\..\..\..\..\..\components\libraries\log;..\..\..\..\..\..\components\libraries\log\src;..\..\..\..\..\..\components\libraries\timer;..\..\..\..\..\..\components\libraries\uart;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\toolchain;..\..\..\..\..\bsp;..\..\..;..\..\..\..\..\..\external\segger_rtt;..\config;..\..\..\..\..\..\components\drivers_nrf\saadc;..\..\..\..\..\..\components\drivers_nrf\timer;..\..\..\..\..\..\components\libraries\saadc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -348,7 +386,6 @@
             <NoWarn>0</NoWarn>
             <uSurpInc>0</uSurpInc>
             <useXO>0</useXO>
-            <uClangAs>0</uClangAs>
             <VariousControls>
               <MiscControls> --cpreproc_opts=-DNRF52832,-DNRF52,-DBOARD_PCA10040,-DNRF52_PAN_12,-DNRF52_PAN_15,-DNRF52_PAN_20,-DNRF52_PAN_31,-DCONFIG_GPIO_AS_PINRESET,-DNRF52_PAN_36,-DNRF52_PAN_51,-DNRF52_PAN_54,-DNRF52_PAN_55,-DNRF52_PAN_58,-DNRF52_PAN_64,-DSWI_DISABLE0</MiscControls>
               <Define> NRF52832 NRF52 BOARD_PCA10040 NRF52_PAN_12 NRF52_PAN_15 NRF52_PAN_20 NRF52_PAN_31 CONFIG_GPIO_AS_PINRESET NRF52_PAN_36 NRF52_PAN_51 NRF52_PAN_54 NRF52_PAN_55 NRF52_PAN_58 NRF52_PAN_64 SWI_DISABLE0</Define>
@@ -390,16 +427,6 @@
               <FilePath>..\config\sdk_config.h</FilePath>
             </File>
             <File>
-              <FileName>rc_motor.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\rc_motor.c</FilePath>
-            </File>
-            <File>
-              <FileName>rc_motor.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\rc_motor.h</FilePath>
-            </File>
-            <File>
               <FileName>rc_saadc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\rc_saadc.c</FilePath>
@@ -408,26 +435,6 @@
               <FileName>rc_saadc.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\rc_saadc.h</FilePath>
-            </File>
-            <File>
-              <FileName>rc_uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\rc_uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>rc_uart.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\rc_uart.h</FilePath>
-            </File>
-            <File>
-              <FileName>rc_ultrasound.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\rc_ultrasound.c</FilePath>
-            </File>
-            <File>
-              <FileName>rc_ultrasound.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\rc_ultrasound.h</FilePath>
             </File>
             <File>
               <FileName>rc_unit_test.c</FileName>
@@ -495,11 +502,6 @@
               <FilePath>..\..\..\..\..\..\components\drivers_nrf\gpiote\nrf_drv_gpiote.c</FilePath>
             </File>
             <File>
-              <FileName>nrf_drv_pwm.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\drivers_nrf\pwm\nrf_drv_pwm.c</FilePath>
-            </File>
-            <File>
               <FileName>nrf_drv_uart.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\drivers_nrf\uart\nrf_drv_uart.c</FilePath>
@@ -515,14 +517,14 @@
               <FilePath>..\..\..\..\..\..\components\drivers_nrf\nrf_soc_nosd\nrf_soc.c</FilePath>
             </File>
             <File>
+              <FileName>nrf_saadc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\drivers_nrf\hal\nrf_saadc.c</FilePath>
+            </File>
+            <File>
               <FileName>nrf_drv_saadc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\drivers_nrf\saadc\nrf_drv_saadc.c</FilePath>
-            </File>
-            <File>
-              <FileName>nrf_drv_timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\drivers_nrf\timer\nrf_drv_timer.c</FilePath>
             </File>
           </Files>
         </Group>

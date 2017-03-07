@@ -34,6 +34,10 @@
 #include "rc_ultrasound.h"
 #include "rc_unit_test.h"
 
+#define NRF_LOG_MODULE_NAME "TRUCK 1"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+
 
 
 void leds_init(){
@@ -55,14 +59,25 @@ void clear_led(uint32_t number){
 
 int main(void)
 {
+    uint32_t err_code = NRF_LOG_INIT(NULL);
+    APP_ERROR_CHECK(err_code);
+    NRF_LOG_INFO("Start, reload: \r\n");
+    NRF_LOG_INFO("EiT Lastebil, truck 1: \r\n");
+    NRF_LOG_FLUSH();
+    
     leds_init();
+    NRF_LOG_INFO("leds_init(): \r\n");
+    NRF_LOG_FLUSH();
     uart_init();   
+    NRF_LOG_INFO("uart_init(): \r\n");
+    NRF_LOG_FLUSH();
     motor_init();
+    NRF_LOG_INFO("motor_init(): \r\n");
+    NRF_LOG_FLUSH();
     ultrasound_init();
-    printf("\r\nEiT Lastebil: \r\n");
-
-    motor_set_speed(RIGHT, 500);    
-    motor_start();
+    NRF_LOG_INFO("ultrasound_init(): \r\n");
+    NRF_LOG_FLUSH();
+    //printf("\r\nEiT Lastebil: \r\n");
 
 
     unit_test_motor();
