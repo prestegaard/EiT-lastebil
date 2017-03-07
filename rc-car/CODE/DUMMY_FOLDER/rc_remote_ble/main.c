@@ -108,7 +108,7 @@ void send_joystick_value(){
     uint32_t joy_val_32_x = joystick_read(x_dir);    
     uint32_t joy_val_32_y = joystick_read(y_dir);    
     uint32_t joy_button_val = joystick_button_read();
-    printf("Joy val server: \t X: %d\t Y: %d\t Button: %d\t \r\n", joy_val_32_x, joy_val_32_y, joy_button_val);
+    printf("Joy val remote: \t X: %d\t Y: %d\t Button: %d\t \r\n", joy_val_32_x, joy_val_32_y, joy_button_val);
     uint8_t length = 19;
     uint8_t output[19] = {0};
     // Message
