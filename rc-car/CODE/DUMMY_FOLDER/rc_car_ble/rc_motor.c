@@ -112,8 +112,8 @@ void motor_set_dir(uint32_t side, uint32_t dir){
         }
         //Change motors for next iteration
         if(side == BOTH){
-            motor_1 = motor_in_3_b;
-            motor_2 = motor_in_4_b;
+            motor_1 = motor_in_4_b;
+            motor_2 = motor_in_3_b;
         }   //end if
     } //end for
     //motor_start();
