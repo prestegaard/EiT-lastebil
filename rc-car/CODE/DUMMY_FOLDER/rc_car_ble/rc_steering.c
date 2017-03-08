@@ -1,15 +1,19 @@
 #include "rc_steering.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
 
 #define maxVal 511
 #define max(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define sign(x) ((x > 0) ? 1 : ((x < 0) ? -1 : 1))
 
 
-// Scale inputs to -512..512 before calling this
 // Scale output to 9 bit and set direction.
 void motorSpeeds(uint32_t inturn, uint32_t inthrottle, uint32_t *left_speed, uint32_t *right_speed){
-	int turn = inturn - 512;
-	int throttle = inthrottle - 512;
+	// Scale from 0..1023 to -512...511
+	int32_t turn = inturn - 512;
+	int32_t throttle = inthrottle - 512;
 	if(abs(throttle) < 10){
 		throttle = 0;
 	}
@@ -18,38 +22,27 @@ void motorSpeeds(uint32_t inturn, uint32_t inthrottle, uint32_t *left_speed, uin
 		turn = 0;
 	}
 
-	int leftSide = throttle;
-	int rightSide = throttle;
-	char *dir = malloc(256);
-		if(throttle < 0){
-			strcpy(dir, "Reverse");
-		}else{
-			strcpy(dir, "Forward");
-		}
+	uint32_t leftSide = throttle;
+	int32_t rightSide = throttle;
+	
 	if(turn < 0){
-		printf("%s %s, %s:%i, %s:%i\n", dir,"LeftTurn", "Throttle", throttle, "Turn", turn);
 		leftSide = throttle + sign(throttle)*turn;
 	}else if(turn > 0){
-		printf("%s %s, %s:%i, %s:%i\n", dir,"RighTurn", "Throttle", throttle, "Turn", turn);
 		rightSide = throttle - sign(throttle)*turn;
 	}
-	else{
-		printf("%s , %s:%i, %s:%i\n", dir,"Throttle", throttle, "Turn", turn);
-	}
 
-	free(dir);
 	int norm = 1;
 	if(max(abs(leftSide), abs(rightSide)) > maxVal){
 		norm = max(abs(leftSide), abs(rightSide))/maxVal;
 	}
 
-	*left_speed = leftSide/norm;
-	*right_speed = rightSide/norm;
+	*left_speed = leftSide/norm + 512;
+	*right_speed = rightSide/norm + 512;
 }
 
 // In main loop, after motor speeds are desided
 
-void foo(){
+/*void foo(){
 	int left = 0;
 	int right = 0;
 
@@ -92,4 +85,4 @@ int main(){
 	printf("%s%i, %s%i\n", "Left:",left_speed, "Right:",right_speed);
 
 	return 0;
-}
+}*/

@@ -39,8 +39,10 @@
 #include "bsp_btn_ble.h"
 
 
+
 #include "rc_motor.h"
 #include "rc_ultrasound.h"
+#include "rc_steering.h"
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 0                                           /**< Include the service_changed characteristic. If not enabled, the server's database cannot be changed for the lifetime of the device. */
 
@@ -140,6 +142,7 @@ static void gap_params_init(void)
 /**@snippet [Handling the data received over BLE] */
 static void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t length)
 {
+    static uint32_t start_motor = 1;
     char joystick_message[8] = "Joy_val:";
     uint32_t joystick_message_flag=0;
 
@@ -162,7 +165,50 @@ static void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t lengt
         uint32_t joy_button_val = p_data[17];
         uint32_t joy_val_32_x = *((uint32_t*) joy_val_8_x);
         uint32_t joy_val_32_y = *((uint32_t*) joy_val_8_y);
-        printf("joy_val truck: \t X: %d\t Y: %d\t Button: %d \r\n", joy_val_32_x, joy_val_32_y, joy_button_val);
+
+        uint32_t left_speed = 0;
+        uint32_t right_speed = 0;
+
+        motorSpeeds(joy_val_32_y, joy_val_32_x, &left_speed, &right_speed);
+
+        uint32_t left_dir =  0;
+        uint32_t right_dir = 0;
+
+        if(left_speed > 512){
+            left_dir = 1;
+            left_speed -= 512;
+        }else {
+            left_speed = 512 - left_speed;
+        }
+        if(right_speed > 512){
+            right_dir = 1;
+            right_speed -=512;
+        }else{
+            right_speed = 512 - right_speed;
+        }
+
+        if(start_motor){
+            motor_start();
+            start_motor = 0;
+        }
+
+        if(left_dir == right_dir){
+            motor_set_dir(BOTH, left_dir);
+        }else{
+            motor_set_dir(LEFT, left_dir);
+            motor_set_dir(RIGHT, right_dir);
+        }
+
+        if(left_speed == right_speed){
+            motor_set_speed(BOTH, left_speed);
+        }else{
+            motor_set_speed(LEFT, left_speed);
+            motor_set_speed(RIGHT, right_speed);
+        }
+
+        printf("Left speed: %d\t Right speed: %d\t Left dir: %d\t Right dir: %d \r\n", left_speed, right_speed, left_dir, right_dir);
+
+
     }
     else{
         for (uint32_t i = 0; i < length; i++)
