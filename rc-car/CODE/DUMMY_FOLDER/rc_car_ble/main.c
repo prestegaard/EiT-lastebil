@@ -38,6 +38,10 @@
 #include "bsp.h"
 #include "bsp_btn_ble.h"
 
+
+#include "rc_motor.h"
+#include "rc_ultrasound.h"
+
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 0                                           /**< Include the service_changed characteristic. If not enabled, the server's database cannot be changed for the lifetime of the device. */
 
 #if (NRF_SD_BLE_API_VERSION == 3)
@@ -628,6 +632,8 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
+    motor_init();
+    ultrasound_init();
 
     printf("\r\nUART Start!\r\n");
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);

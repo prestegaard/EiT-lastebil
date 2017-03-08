@@ -3,7 +3,7 @@
  * Auto generated Run-Time-Environment Component Configuration File
  *      *** Do not modify ! ***
  *
- * Project: 'ble_app_uart_pca10040_s132' 
+ * Project: 'truck_ble_pca10040' 
  * Target:  'nrf52832_xxaa' 
  */
 
