@@ -206,7 +206,7 @@ static void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t lengt
             motor_set_speed(RIGHT, right_speed);
         }
 
-        printf("Left speed: %d\t Right speed: %d\t Left dir: %d\t Right dir: %d \r\n", left_speed, right_speed, left_dir, right_dir);
+        //printf("Left speed: %d\t Right speed: %d\t Left dir: %d\t Right dir: %d \r\n", left_speed, right_speed, left_dir, right_dir);
 
 
     }
@@ -681,7 +681,7 @@ int main(void)
     motor_init();
     ultrasound_init();
 
-    printf("\r\nUART Start!\r\n");
+    //printf("\r\nUART Start!\r\n");
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
 
