@@ -21,6 +21,9 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
   $(PROJ_DIR)/main.c \
+  $(PROJ_DIR)/rc_utilities.c \
+  $(PROJ_DIR)/rc_saadc.c \
+  $(PROJ_DIR)/rc_unit_test.c \
   $(SDK_ROOT)/external/segger_rtt/RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \

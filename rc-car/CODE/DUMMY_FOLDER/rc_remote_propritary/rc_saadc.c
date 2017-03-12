@@ -21,7 +21,7 @@ void joystick_button_init(){
     nrf_gpio_cfg_input(joystick_button_pin, NRF_GPIO_PIN_PULLUP); 
 }
 uint32_t joystick_button_read(){
-    return nrf_gpio_pin_read(joystick_button_pin);
+    return !nrf_gpio_pin_read(joystick_button_pin);
 }
 
 void joystick_init(){

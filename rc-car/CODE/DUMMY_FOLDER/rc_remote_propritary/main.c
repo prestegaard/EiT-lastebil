@@ -28,8 +28,8 @@
 #include "nrf_log_ctrl.h"
 
 #include "rc_saadc.h"
+#include "rc_messages_and_defines.h"
 #include "rc_utilities.h"
-#include "rc_message_and_defines.h"
 
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00);
 
@@ -38,8 +38,13 @@ static nrf_esb_payload_t        rx_payload;
 /*lint -save -esym(40, BUTTON_1) -esym(40, BUTTON_2) -esym(40, BUTTON_3) -esym(40, BUTTON_4) -esym(40, LED_1) -esym(40, LED_2) -esym(40, LED_3) -esym(40, LED_4) */
 
 
-static remote_packet_t msg;
+static remote_packet_t remote_msg;
+static car_packet_t car_msg;
 static uint8_t STATE;
+static uint8_t NEXT_STATE;
+static uint8_t receive_ack;
+
+
 
 void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
 {
@@ -60,6 +65,19 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                 if (rx_payload.length > 0)
                 {
                     NRF_LOG_DEBUG("RX RECEIVED PAYLOAD\r\n");
+                    convert_payload_to_car_message(&car_msg, &rx_payload);
+                    switch(STATE) {
+                        case STATE_REMOTE_ADVERTISE_AVAILABLE :     
+                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == STATE_CAR_ADVERTISE_AVAILABLE){
+                                NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                            }
+                            break;
+                        case STATE_REMOTE_SINGLE_MODE : 
+                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
+                                receive_ack = 1;
+                            }
+                            break;
+                    }
                 }
             }
             break;
@@ -83,7 +101,7 @@ void clocks_start( void )
 /*
 * added payload.length = 11 instead of default config 32
 * changed to PROTOCOL_ESB, not PROTOCOL_ESB_DPL (dynamig payload length)
-* added typedef remote_packet struct msg
+* added typedef remote_packet struct remote_msg
 
 */
 uint32_t esb_init( void )
@@ -126,8 +144,6 @@ int main(void)
 {
     ret_code_t err_code;
 
-    gpio_init();
-
     err_code = NRF_LOG_INIT(NULL);
     APP_ERROR_CHECK(err_code);
 
@@ -142,54 +158,76 @@ int main(void)
 
     NRF_LOG_DEBUG("EiT Remote\r\n");
 
-    // Wait until user presses button and selects sender ID
-    STATE = STATE_WAIT_FOR_CHANNEL_SELECT;
-        while(!get_pressed_button()){
-            // NOP
-        }
-        msg.senderID = get_pressed_button();
-        set_led(msg.senderID);
-        NRF_LOG_DEBUG("SenderID is selected: %d\r\n", msg.senderID);
-    // Wait until remote reveives car available
-    STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
-        NRF_LOG_DEBUG("Advertising with SenderID: %d\r\n", msg.senderID);
-        msg.type = MSG__REMOTE_TYPE_ADVERTISE_AVAILABLE;
-        convert_msg_packet_to_array();
-        while(STATE == STATE_REMOTE_ADVERTISE_AVAILABLE){
-            nrf_esb_write_payload(tx_payload)
-            nrf_delay_ms(100);
-        }
-        // Exit procedure after connection is made; single mode
-        STATE = STATE_REMOTE_SINGLE_MODE;
-        NRF_LOG_DEBUG("Connected to car\r\n");
     while (true)
        {
         switch (STATE){
+            case STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT : 
+                while(!get_pressed_button()){
+                    // Wait until user presses button and selects sender ID
+                }
+                remote_msg.senderID = get_pressed_button();
+                set_led(remote_msg.senderID);
+                NRF_LOG_DEBUG("SenderID is selected: %d\r\n", remote_msg.senderID);
+                NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
+                break;
+                
+            case STATE_REMOTE_ADVERTISE_AVAILABLE :
+                NRF_LOG_DEBUG("Advertising with SenderID: %d\r\n", remote_msg.senderID);
+                remote_msg.type = MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE;
+                convert_remote_message_to_payload(&remote_msg, &tx_payload);
+                // Wait until remote receives car available
+                while(NEXT_STATE == STATE_REMOTE_ADVERTISE_AVAILABLE){
+                    // NEXT_STATE gets updated in rx handler if correct message is received
+                    nrf_esb_write_payload(&tx_payload);
+                    nrf_delay_ms(100);
+                }
+                // Exit procedure after connection is made; single mode
+                STATE = STATE_REMOTE_SINGLE_MODE;
+                NRF_LOG_DEBUG("Connected to car\r\n");
+
             case STATE_REMOTE_SINGLE_MODE :
-                tx_payload.noack = false;
-                msg.type    = MSG_REMOYE_TYPE_JOYSTICK;
-                msg.x       = joystick_read(x_dir);
-                msg.y       = joystick_read(y_dir);
-                msg.button  = joystick_button_read();
-                convert_msg_packet_to_array();
+                tx_payload.noack   = false;
+                remote_msg.type    = MSG_REMOTE_TYPE_JOYSTICK;
+                remote_msg.x       = joystick_read(x_dir);
+                remote_msg.y       = joystick_read(y_dir);
+                remote_msg.button  = joystick_button_read();
+                convert_remote_message_to_payload(&remote_msg, &tx_payload);
+                receive_ack = 0;
+                if(nrf_esb_write_payload(&tx_payload) == NRF_SUCCESS){
+                    uint32_t timeout = 64000000; // 64 mill, aka 1 second timeout
+                    while(!receive_ack && --timeout > 0){
+                        // Wait for ack, gets updated in rx handler
+                    }
+                    if(receive_ack){
+                        if(remote_msg.button == 1){
+                            NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_PENDING;
+                        }
+                        else{
+                            NEXT_STATE = STATE;
+                        }
+                    }
+                    else{
+                        // No ack reveiced, aka connection lost.
+                        NRF_LOG_WARNING("No ack received, return to advertise mode\r\n");
+                        NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
+                    }    
+                }
+                else
+                {
+                    NRF_LOG_WARNING("Sending packet failed\r\n");
+                }
+                break;
+
+            case STATE_REMOTE_TRUCK_POOLING_PENDING :
+                NRF_LOG_DEBUG("State: TRUCK POOLING PENDING, switches back to singel mode\r\n");
+                NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                break;
 
         }
+        STATE = NEXT_STATE;
+        nrf_delay_ms(100);
+    }
 
-            if (nrf_esb_write_payload(&tx_payload) == NRF_SUCCESS)
-            {
-                // Toggle one of the LEDs.
-                nrf_gpio_pin_write(LED_1, !(tx_payload.data[1]%8>0 && tx_payload.data[1]%8<=4));
-                nrf_gpio_pin_write(LED_2, !(tx_payload.data[1]%8>1 && tx_payload.data[1]%8<=5));
-                nrf_gpio_pin_write(LED_3, !(tx_payload.data[1]%8>2 && tx_payload.data[1]%8<=6));
-                nrf_gpio_pin_write(LED_4, !(tx_payload.data[1]%8>3));
-                tx_payload.data[1]++;
-            }
-            else
-            {
-                NRF_LOG_WARNING("Sending packet failed\r\n");
-            }
-
-            nrf_delay_us(50000);
-        }
 }
 /*lint -restore */
+/** @} */
