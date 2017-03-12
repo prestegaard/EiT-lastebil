@@ -9,10 +9,12 @@
  * the file.
  *
  */
-
+#include "SEGGER_RTT.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
+
 #include "sdk_common.h"
 #include "nrf.h"
 #include "nrf_esb.h"
@@ -31,7 +33,16 @@
 #include "rc_messages_and_defines.h"
 #include "rc_utilities.h"
 
-static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00);
+#define RTT_PRINTF(...) \
+do { \
+     char str[64];\
+     sprintf(str, __VA_ARGS__);\
+     SEGGER_RTT_WriteString(0, str);\
+ } while(0)
+
+#define printf RTT_PRINTF
+ 
+static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
 
 static nrf_esb_payload_t        rx_payload;
 
@@ -51,20 +62,20 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
     switch (p_event->evt_id)
     {
         case NRF_ESB_EVENT_TX_SUCCESS:
-            NRF_LOG_DEBUG("TX SUCCESS EVENT\r\n");
+            SEGGER_RTT_WriteString(0, "TX SUCCESS EVENT\r\n");
             break;
         case NRF_ESB_EVENT_TX_FAILED:
-            NRF_LOG_DEBUG("TX FAILED EVENT\r\n");
+            SEGGER_RTT_WriteString(0, "TX FAILED EVENT\r\n");
             (void) nrf_esb_flush_tx();
             (void) nrf_esb_start_tx();
             break;
         case NRF_ESB_EVENT_RX_RECEIVED:
-            NRF_LOG_DEBUG("RX RECEIVED EVENT\r\n");
-            while (nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
+            SEGGER_RTT_WriteString(0, "RX RECEIVED EVENT\r\n");
+            if (nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
             {
                 if (rx_payload.length > 0)
                 {
-                    NRF_LOG_DEBUG("RX RECEIVED PAYLOAD\r\n");
+                    SEGGER_RTT_WriteString(0, "RX RECEIVED PAYLOAD\r\n");
                     convert_payload_to_car_message(&car_msg, &rx_payload);
                     switch(STATE) {
                         case STATE_REMOTE_ADVERTISE_AVAILABLE :     
@@ -112,7 +123,7 @@ uint32_t esb_init( void )
     uint8_t addr_prefix[8] = {0xE7, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8 };
 
     nrf_esb_config_t nrf_esb_config         = NRF_ESB_DEFAULT_CONFIG;
-    nrf_esb_config.protocol                 = NRF_ESB_PROTOCOL_ESB;
+    nrf_esb_config.protocol                 = NRF_ESB_PROTOCOL_ESB_DPL;
     nrf_esb_config.retransmit_delay         = 600;
     nrf_esb_config.bitrate                  = NRF_ESB_BITRATE_2MBPS;
     nrf_esb_config.event_handler            = nrf_esb_event_handler;
@@ -156,37 +167,55 @@ int main(void)
     buttons_init();
     joystick_init();
 
-    NRF_LOG_DEBUG("EiT Remote\r\n");
-
+    SEGGER_RTT_WriteString(0, "EiT Remote\r\n");
+    STATE = STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT;
+    tx_payload.noack = false;
     while (true)
-       {
+    {
         switch (STATE){
             case STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT : 
                 while(!get_pressed_button()){
                     // Wait until user presses button and selects sender ID
                 }
                 remote_msg.senderID = get_pressed_button();
-                set_led(remote_msg.senderID);
-                NRF_LOG_DEBUG("SenderID is selected: %d\r\n", remote_msg.senderID);
-                NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
+								printf("SenderID: %d \r\n", remote_msg.senderID);
+                //SEGGER_RTT_printf(0, "SenderID is selected: %d\r\n", remote_msg.senderID);
+                SEGGER_RTT_WriteString(0, "SenderID is selected\r\n");
+                                NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
                 break;
                 
             case STATE_REMOTE_ADVERTISE_AVAILABLE :
-                NRF_LOG_DEBUG("Advertising with SenderID: %d\r\n", remote_msg.senderID);
+                //SEGGER_RTT_printf(0, "Advertising with SenderID: %d\r\n", remote_msg.senderID);
+                SEGGER_RTT_WriteString(0, "Advertising with SenderID: \r\n");
                 remote_msg.type = MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE;
-                convert_remote_message_to_payload(&remote_msg, &tx_payload);
                 // Wait until remote receives car available
+                remote_msg.x = 0;
                 while(NEXT_STATE == STATE_REMOTE_ADVERTISE_AVAILABLE){
+                    remote_msg.x ++;
+                    //remote_msg.type ++;
+                    convert_remote_message_to_payload(&remote_msg, &tx_payload);
                     // NEXT_STATE gets updated in rx handler if correct message is received
                     nrf_esb_write_payload(&tx_payload);
+                    SEGGER_RTT_WriteString(0, "REMOTE::: Advertising \r\n");
+                    if(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
+                        SEGGER_RTT_WriteString(0,"Sending packet failed\r\n");
+                    }
+                    if(nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
+                    {
+                        if (rx_payload.length > 0){
+                            SEGGER_RTT_WriteString(0,"Received something\r\n");
+                            NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                            break;       
+                        }
+                    }                    
                     nrf_delay_ms(100);
                 }
                 // Exit procedure after connection is made; single mode
-                STATE = STATE_REMOTE_SINGLE_MODE;
-                NRF_LOG_DEBUG("Connected to car\r\n");
-
+                set_led(remote_msg.senderID);
+                SEGGER_RTT_WriteString(0, "Connected to car\r\n");
+                break;
             case STATE_REMOTE_SINGLE_MODE :
-                tx_payload.noack   = false;
+                SEGGER_RTT_WriteString(0, "REMOTE::: STATE SINGLE MODE\r\n");
                 remote_msg.type    = MSG_REMOTE_TYPE_JOYSTICK;
                 remote_msg.x       = joystick_read(x_dir);
                 remote_msg.y       = joystick_read(y_dir);
@@ -219,7 +248,7 @@ int main(void)
                 break;
 
             case STATE_REMOTE_TRUCK_POOLING_PENDING :
-                NRF_LOG_DEBUG("State: TRUCK POOLING PENDING, switches back to singel mode\r\n");
+                SEGGER_RTT_WriteString(0, "State: TRUCK POOLING PENDING, switches back to single mode\r\n");
                 NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
                 break;
 

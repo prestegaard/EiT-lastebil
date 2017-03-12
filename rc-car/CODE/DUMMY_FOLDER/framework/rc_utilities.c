@@ -1,6 +1,8 @@
+#include "SEGGER_RTT.h"
+#include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "nrf_delay.h"
 #include "nrf.h"
@@ -10,6 +12,16 @@
 #include "nrf_esb.h"
 #include "rc_messages_and_defines.h"
 #include "rc_utilities.h"
+
+
+#define RTT_PRINTF(...) \
+do { \
+     char str[64];\
+     sprintf(str, __VA_ARGS__);\
+     SEGGER_RTT_WriteString(0, str);\
+ } while(0)
+
+#define printf RTT_PRINTF
 
 
 void leds_init(){
