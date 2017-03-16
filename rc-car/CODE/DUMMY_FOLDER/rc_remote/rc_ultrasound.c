@@ -10,6 +10,9 @@
 
 #include "rc_ultrasound.h"
 
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+
 #define read_from_reg(addr) (*(addr))
 
 void ultrasound_init(){
@@ -30,7 +33,9 @@ uint32_t ultrasound_get_distance(){
     *SYSTICK_CVR = 0;
     // Start counter, timer counts from TOP and downwards
     *SYSTICK_CSR |= (1 << 0);
-    while (nrf_gpio_pin_read(ultrasound_echo) == 0);
+    while (nrf_gpio_pin_read(ultrasound_echo) == 0){
+			NRF_LOG_INFO("%d \r\n", nrf_gpio_pin_read(ultrasound_echo));
+		}
     // Get start counter value after entire puls is transmitted
     uint32_t pulse_start_time =  read_from_reg(SYSTICK_CVR);
     while (nrf_gpio_pin_read(ultrasound_echo) == 1);

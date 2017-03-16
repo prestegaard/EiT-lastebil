@@ -33,6 +33,8 @@
 #include "rc_uart.h"
 #include "rc_ultrasound.h"
 #include "rc_unit_test.h"
+#include "rc_controller.h"
+#include "rc_filter.h"
 
 #define NRF_LOG_MODULE_NAME "TRUCK 1"
 #include "nrf_log.h"
@@ -78,16 +80,27 @@ int main(void)
     NRF_LOG_INFO("ultrasound_init(): \r\n");
     NRF_LOG_FLUSH();
     //printf("\r\nEiT Lastebil: \r\n");
+		
+		kalman_state kalman = kalman_init(0.3, 3, 0, 200);
 
-
-    unit_test_motor();
-    unit_test_ultrasound();
+    //unit_test_motor();
+    //unit_test_ultrasound();
     for (;;){
     //    uint8_t cr;
     //    while (app_uart_get(&cr) != NRF_SUCCESS);
     //    while (app_uart_put(cr) != NRF_SUCCESS);
-        nrf_delay_ms(1000);
-        //printf("Distance: %d mm\t \r\n", ultrasound_get_distance());
+        nrf_delay_ms(100);
+			
+				float integral = 0;
+				float last_error = 0;
+				
+				uint32_t dist = ultrasound_get_distance();
+				kalman_update(&kalman, (double) dist);
+				uint32_t filtered = (uint32_t) kalman.x;
+				uint32_t speed = get_speed(0.1, dist, 0, &last_error, &integral);					
+				
+        NRF_LOG_INFO("%d, %d\r\n", filtered, speed);
+				NRF_LOG_FLUSH();
       }
 }
 
