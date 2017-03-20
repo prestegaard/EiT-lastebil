@@ -79,7 +79,8 @@ int main(void)
     NRF_LOG_FLUSH();
     //printf("\r\nEiT Lastebil: \r\n");
 
-
+	NRF_LOG_INFO("unit test motor(): \r\n");
+    NRF_LOG_FLUSH();
     unit_test_motor();
     unit_test_ultrasound();
     for (;;){

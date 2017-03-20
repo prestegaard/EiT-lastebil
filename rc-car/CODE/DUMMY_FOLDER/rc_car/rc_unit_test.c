@@ -9,7 +9,8 @@
 #include "rc_ultrasound.h"
 
 void unit_test_motor(){
-    printf("############### UNIT MOTOR \r\n");
+    //
+	//printf("############### UNIT MOTOR \r\n");
     // DISABLE LEFT MOTOR
     motor_set_speed(LEFT, 0);
 
@@ -51,9 +52,9 @@ void unit_test_motor(){
 }
 
 void unit_test_ultrasound(){
-    printf("############### UNIT TEST ULTRASOUND \r\n");
+    //printf("############### UNIT TEST ULTRASOUND \r\n");
     for(uint8_t i=0; i<10; i++){
-        printf("Distance: %d mm\t \r\n", ultrasound_get_distance());
+        //printf("Distance: %d mm\t \r\n", ultrasound_get_distance());
         nrf_delay_ms(1000);
     }
 }
