@@ -284,8 +284,6 @@ int main(void)
     motor_init();
     ultrasound_init();
 
-    SEGGER_RTT_WriteString(0, "EiT Car\r\n");
-    printf("Halla fra printf\r\n");
     STATE = STATE_CAR_WAIT_FOR_REMOTE;
     //Debug
     STATE = STATE_CAR_SINGLE_MODE;
@@ -313,6 +311,7 @@ int main(void)
         switch(STATE){
             case STATE_CAR_WAIT_FOR_REMOTE:
                 // Wait until a remote is ready to connect.
+                printf("%s\n","STATE_CAR_WAIT_FOR_REMOTE" );
                 while(NEXT_STATE != STATE_CAR_SINGLE_MODE);
                 car_msg.type = MSG_CAR_TYPE_CONNECTED_TO;
                 my_id = remote_msg.senderID;
@@ -322,6 +321,7 @@ int main(void)
                 break;
             case STATE_CAR_SINGLE_MODE:
                 // Get joystick info from remote_msg and set side speeds accordingly
+                printf("%s\n","STATE_CAR_SINGLE_MODE" );
                 motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
 
                 left_dir =  0;
@@ -336,6 +336,7 @@ int main(void)
 
             case STATE_CAR_TRUCK_POOLING_PENDING:
                 // Get joystick info from remote_msg and set side speeds accordingly
+                printf("%s\n", "STATE_CAR_TRUCK_POOLING_PENDING");
                 motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
 
                 left_dir =  0;
@@ -349,6 +350,7 @@ int main(void)
                 break;
 
             case STATE_CAR_TRUCK_POOLING_SLAVE:
+                printf("%s\n", "STATE_CAR_TRUCK_POOLING_SLAVE" );
                 dist = ultrasound_get_distance();
                 kalman_update(&kalman, (double) dist);
                 dist = (uint32_t) kalman.x;
@@ -360,6 +362,7 @@ int main(void)
                 break;
 
             case STATE_CAR_TRUCK_POOLING_MASTER:
+                printf("%s\n", "STATE_CAR_TRUCK_POOLING_MASTER" );
                 motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
 
                 uint32_t left_dir =  0;
