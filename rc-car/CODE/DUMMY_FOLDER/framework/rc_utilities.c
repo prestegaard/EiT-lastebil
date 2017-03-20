@@ -69,6 +69,32 @@ uint8_t get_pressed_button(){
 // Retrun 0 if no buttons are pressed
     return 0;
 }
+
+void convert_car_message_to_payload(car_packet_t const * car_msg, nrf_esb_payload_t * p_payload){
+    p_payload->data[0]   = car_msg->senderID;
+    p_payload->data[1]   = car_msg->type;   
+}
+void convert_payload_to_car_message(car_packet_t * car_msg, nrf_esb_payload_t const * p_payload){
+
+    // Make message struct
+    car_msg->senderID   = p_payload->data[0];
+    car_msg->type       = p_payload->data[1];
+}
+
+
+void convert_remote_message_to_payload(remote_packet_t const * remote_msg, nrf_esb_payload_t * p_payload){
+    p_payload->data[0]   = remote_msg->senderID;
+    p_payload->data[1]   = remote_msg->type;
+    p_payload->data[2]   = remote_msg->x;       // LSB
+    p_payload->data[3]   = remote_msg->x >> 8; 
+    p_payload->data[4]   = remote_msg->x >> 16;
+    p_payload->data[5]   = remote_msg->x >> 24; // MSB
+    p_payload->data[6]   = remote_msg->y;       // LSB 
+    p_payload->data[7]   = remote_msg->y >> 8;  
+    p_payload->data[8]   = remote_msg->y >> 16; 
+    p_payload->data[9]   = remote_msg->y >> 24; // MSB
+    p_payload->data[10]  = remote_msg->button;    
+}
 void convert_payload_to_remote_message(remote_packet_t * remote_msg, nrf_esb_payload_t const * p_payload){
     
     
@@ -87,49 +113,56 @@ void convert_payload_to_remote_message(remote_packet_t * remote_msg, nrf_esb_pay
     remote_msg->button   = p_payload->data[10];
 }
 
-
-void convert_payload_to_car_message(car_packet_t * car_msg, nrf_esb_payload_t const * p_payload){
-
-    // Make message struct
-    car_msg->senderID   = p_payload->data[0];
-    car_msg->type       = p_payload->data[1];
-    car_msg->speed_info = p_payload->data[2] - 100;
-}
-
-void convert_remote_message_to_payload(remote_packet_t const * remote_msg, nrf_esb_payload_t * p_payload){
-    p_payload->data[0]   = remote_msg->senderID;
-    p_payload->data[1]   = remote_msg->type;
-    p_payload->data[2]   = remote_msg->x;       // LSB
-    p_payload->data[3]   = remote_msg->x >> 8; 
-    p_payload->data[4]   = remote_msg->x >> 16;
-    p_payload->data[5]   = remote_msg->x >> 24; // MSB
-    p_payload->data[6]   = remote_msg->y;       // LSB 
-    p_payload->data[7]   = remote_msg->y >> 8;  
-    p_payload->data[8]   = remote_msg->y >> 16; 
-    p_payload->data[9]   = remote_msg->y >> 24; // MSB
-    p_payload->data[10]  = remote_msg->button;    
-}
-
-void convert_car_message_to_payload(car_packet_t const * car_msg, nrf_esb_payload_t * p_payload){
+void convert_master_message_to_payload(master_packet_t const * master_msg, nrf_esb_payload_t * p_payload){
     uint8_t speed_info_converted;
-    if (car_msg->speed_info > 100){
+    if (master_msg->speed_info > 100){
         speed_info_converted = 200;
     }
-    else if(car_msg->speed_info > 0){
-        speed_info_converted = car_msg->speed_info + 100;
+    else if(master_msg->speed_info > 0){
+        speed_info_converted = master_msg->speed_info + 100;
     }
-    else if(car_msg->speed_info < -100){
+    else if(master_msg->speed_info < -100){
         speed_info_converted = 0;
     }
-    else if(car_msg->speed_info < 0){
-        speed_info_converted = car_msg->speed_info + 100;
+    else if(master_msg->speed_info < 0){
+        speed_info_converted = master_msg->speed_info + 100;
     }
 
-    p_payload->data[0]   = car_msg->senderID;
-    p_payload->data[1]   = car_msg->type;
-    p_payload->data[2]   = speed_info_converted; 
-   
+    p_payload->data[0]   = master_msg->senderID;
+    p_payload->data[1]   = master_msg->type;
+    p_payload->data[2]   = speed_info_converted;   
 }
+void convert_payload_to_master_message(master_packet_t * master_msg, nrf_esb_payload_t const * p_payload){
+
+    // Make message struct
+    master_msg->senderID   = p_payload->data[0];
+    master_msg->type       = p_payload->data[1];
+    master_msg->speed_info = p_payload->data[2] - 100;
+}
+
+
+uint32_t extract_sender_id_from_payload(nrf_esb_payload_t const *p_payload){
+    // Convert 8 bit array values to 32 bit single value
+    uint8_t joy_val_8_x[4] = {0};
+    uint8_t joy_val_8_y[4] = {0};
+    for(uint32_t i = 0; i < 4; i++){
+        joy_val_8_x[i] = p_payload->data[i+2];
+        joy_val_8_y[i] = p_payload->data[i+6];
+    }
+    return p_payload->data[0];
+}
+uint32_t extract_type_from_payload(nrf_esb_payload_t const *p_payload){
+    // Convert 8 bit array values to 32 bit single value
+    uint8_t joy_val_8_x[4] = {0};
+    uint8_t joy_val_8_y[4] = {0};
+    for(uint32_t i = 0; i < 4; i++){
+        joy_val_8_x[i] = p_payload->data[i+2];
+        joy_val_8_y[i] = p_payload->data[i+6];
+    }
+    return p_payload->data[1];
+}
+
+
 
 
 

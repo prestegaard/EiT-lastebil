@@ -24,6 +24,7 @@ void motor_set_dir(uint32_t side, uint32_t dir);
 void motor_set_speed(uint32_t side, uint32_t speed);
 void motor_stop(void);
 void motor_start(void);
+void set_motors(uint32_t left_speed, uint32_t right_speed, uint32_t left_dir, uint32_t right_dir);
 
 #endif // RC_MOTOR__
 
