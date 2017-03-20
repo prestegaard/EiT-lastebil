@@ -140,5 +140,22 @@ void motor_stop(){
     nrf_drv_pwm_stop(&m_pwm0, true); //stop pwm and wait until it is stopped, henvce true
 }
 
+
+void set_motors(uint32_t left_speed, uint32_t right_speed, uint32_t left_dir, uint32_t right_dir){
+    if(left_dir == right_dir){
+        motor_set_dir(BOTH, left_dir);
+    }else{
+        motor_set_dir(LEFT, left_dir);
+        motor_set_dir(RIGHT, right_dir);
+    }
+
+    if(left_speed == right_speed){
+        motor_set_speed(BOTH, left_speed);
+    }else{
+        motor_set_speed(LEFT, left_speed);
+        motor_set_speed(RIGHT, right_speed);
+    }
+}
+
 /** @} */
 
