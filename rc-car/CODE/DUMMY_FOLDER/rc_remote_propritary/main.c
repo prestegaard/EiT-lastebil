@@ -42,6 +42,9 @@ do { \
 
 #define printf RTT_PRINTF
  
+#define TIMEOUT 1000
+#define RETIRES 3
+
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
 
 static nrf_esb_payload_t        rx_payload;
@@ -62,27 +65,21 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
     switch (p_event->evt_id)
     {
         case NRF_ESB_EVENT_TX_SUCCESS:
-            SEGGER_RTT_WriteString(0, "TX SUCCESS EVENT\r\n");
+            SEGGER_RTT_WriteString(0, "TX SUCCESS EVENT\n");
             break;
         case NRF_ESB_EVENT_TX_FAILED:
-            SEGGER_RTT_WriteString(0, "TX FAILED EVENT\r\n");
+            SEGGER_RTT_WriteString(0, "TX FAILED EVENT\n");
             (void) nrf_esb_flush_tx();
             (void) nrf_esb_start_tx();
             break;
         case NRF_ESB_EVENT_RX_RECEIVED:
-            SEGGER_RTT_WriteString(0, "RX RECEIVED EVENT\r\n");
+            SEGGER_RTT_WriteString(0, "RX RECEIVED EVENT\n");
             if (nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
             {
                 if (rx_payload.length > 0)
                 {
-                    SEGGER_RTT_WriteString(0, "RX RECEIVED PAYLOAD\r\n");
                     convert_payload_to_car_message(&car_msg, &rx_payload);
                     switch(STATE) {
-                        case STATE_REMOTE_ADVERTISE_AVAILABLE :     
-                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == STATE_CAR_ADVERTISE_AVAILABLE){
-                                NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
-                            }
-                            break;
                         case STATE_REMOTE_SINGLE_MODE : 
                             if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
                                 receive_ack = 1;
@@ -128,8 +125,10 @@ uint32_t esb_init( void )
     nrf_esb_config.bitrate                  = NRF_ESB_BITRATE_2MBPS;
     nrf_esb_config.event_handler            = nrf_esb_event_handler;
     nrf_esb_config.mode                     = NRF_ESB_MODE_PTX;
-    nrf_esb_config.selective_auto_ack       = false;
+    nrf_esb_config.selective_auto_ack       = true;
     nrf_esb_config.payload_length           = 11;
+   
+    tx_payload.noack = true;
 
     err_code = nrf_esb_init(&nrf_esb_config);
 
@@ -148,8 +147,54 @@ uint32_t esb_init( void )
 }
 
 
+void radio_receive_mode(){
+    nrf_esb_disable();
+    nrf_delay_ms(1);
+    esb_init();
+    nrf_delay_ms(1);
+    nrf_esb_start_rx();
+    nrf_delay_ms(1);
+}
 
+void radio_transmit_mode(){
+    nrf_delay_ms(1);
+    nrf_esb_stop_rx();
+    nrf_delay_ms(1);
+    nrf_esb_disable();
+    nrf_delay_ms(1);
+    esb_init();
+    nrf_delay_ms(1);
+    nrf_esb_start_tx();
+    nrf_delay_ms(1);
+}
 
+uint32_t radio_send_and_ack_message(){
+    for(uint32_t i=0; i<RETIRES; i++){
+        radio_transmit_mode();
+        printf("SenderID: %d \r\n", remote_msg.senderID);   
+        convert_remote_message_to_payload(&remote_msg, &tx_payload);
+        receive_ack = 0;
+        while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
+            //NOP
+        }
+    
+        radio_receive_mode();
+        uint32_t timeout = TIMEOUT;
+        while(--timeout > 0){
+            if(receive_ack){
+                break;
+            }
+            nrf_delay_ms(1);
+        }
+        if(receive_ack){
+            printf("After timeout loop\n");        
+            break;
+        }
+        else
+            printf("timeout occred\n");
+    }
+    return receive_ack;
+}
 
 int main(void)
 {
@@ -169,9 +214,13 @@ int main(void)
 
     SEGGER_RTT_WriteString(0, "EiT Remote\r\n");
     STATE = STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT;
-    tx_payload.noack = false;
+    nrf_esb_start_tx();
+    // Debug: 
+    STATE = STATE_REMOTE_SINGLE_MODE;
+    
     while (true)
     {
+        /*
         switch (STATE){
             case STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT : 
                 while(!get_pressed_button()){
@@ -254,7 +303,19 @@ int main(void)
 
         }
         STATE = NEXT_STATE;
-        nrf_delay_ms(100);
+        */
+        while(!get_pressed_button()){
+                    // Wait until user presses button and selects sender ID
+        }
+        remote_msg.senderID = get_pressed_button();
+        radio_send_and_ack_message();
+
+        while(get_pressed_button())
+        {
+           //NOP
+        }
+        printf("ReceiveID     : %d\n", car_msg.senderID);   
+        printf("Reviece speed : %d\n", car_msg.speed_info);
     }
 
 }

@@ -97,71 +97,9 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                     printf("RX - joy Y    = %d\r\n", remote_msg.y);
                     nrf_delay_ms(2);
                     printf("RX - button   = %d\r\n", remote_msg.button);
-                    
-                    switch(STATE) {
-                        case STATE_CAR_ADVERTISE_AVAILABLE :     
-                            if(remote_msg.type == MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE){
-                                SEGGER_RTT_WriteString(0, "Entered advertise mode\n");
-                                car_msg.senderID = remote_msg.senderID;
-                                car_msg.type = MSG_CAR_TYPE_ADVERTISE_AVAILABLE;
-                                convert_car_message_to_payload(&car_msg, &tx_payload);
-                                if(nrf_esb_write_payload(&tx_payload)){
-                                    set_led(car_msg.senderID);
-                                    NEXT_STATE = STATE_CAR_SINGLE_MODE;
-                                }
-                            }
-                            break;
-                        case STATE_CAR_SINGLE_MODE : 
-                            if(remote_msg.senderID == car_msg.senderID && remote_msg.type == MSG_REMOTE_TYPE_JOYSTICK){
-                                car_msg.type       = MSG_CAR_TYPE_ACKNOWLEDGE;
-                                car_msg.speed_info = -1;
-                                convert_car_message_to_payload(&car_msg, &tx_payload);
-                                if(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
-                                    NRF_LOG_WARNING("Sending packet failed\r\n");
-                                }
-                                static uint32_t start_motor = 1;
-                                uint32_t left_speed = 0;
-                                uint32_t right_speed = 0;
-                                motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
 
-                                uint32_t left_dir =  0;
-                                uint32_t right_dir = 0;
 
-                                if(left_speed > 512){
-                                    left_dir = 1;
-                                    left_speed -= 512;
-                                }else {
-                                    left_speed = 512 - left_speed;
-                                }
-                                if(right_speed > 512){
-                                    right_dir = 1;
-                                    right_speed -=512;
-                                }else{
-                                    right_speed = 512 - right_speed;
-                                }
-
-                                if(start_motor){
-                                    motor_start();
-                                    start_motor = 0;
-                                }
-
-                                if(left_dir == right_dir){
-                                    motor_set_dir(BOTH, left_dir);
-                                }else{
-                                    motor_set_dir(LEFT, left_dir);
-                                    motor_set_dir(RIGHT, right_dir);
-                                }
-
-                                if(left_speed == right_speed){
-                                    motor_set_speed(BOTH, left_speed);
-                                }else{
-                                    motor_set_speed(LEFT, left_speed);
-                                    motor_set_speed(RIGHT, right_speed);
-                                }
-                            }
-                            break;
-                    } // Switch statemachine
-                    STATE = NEXT_STATE;
+                   
                 } // payload >0
             } // read(&rx_payload) == sucsess
             break; // break case RX_EVENT
@@ -196,14 +134,15 @@ uint32_t esb_init( void )
     uint8_t addr_prefix[8] = {0xE7, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8 };
 
     nrf_esb_config_t nrf_esb_config         = NRF_ESB_DEFAULT_CONFIG;
-    nrf_esb_config.payload_length           = 11; // Only three byte payload for car
     nrf_esb_config.protocol                 = NRF_ESB_PROTOCOL_ESB_DPL;
+    nrf_esb_config.retransmit_delay         = 600;
     nrf_esb_config.bitrate                  = NRF_ESB_BITRATE_2MBPS;
     nrf_esb_config.event_handler            = nrf_esb_event_handler;
     nrf_esb_config.mode                     = NRF_ESB_MODE_PTX;
-    nrf_esb_config.selective_auto_ack       = false;
+    nrf_esb_config.selective_auto_ack       = true;
+    nrf_esb_config.payload_length           = 11;
 
-
+    tx_payload.noack = true;
 
     err_code = nrf_esb_init(&nrf_esb_config);
 
@@ -221,10 +160,47 @@ uint32_t esb_init( void )
     return err_code;
 }
 
+void radio_receive_mode(){
+    nrf_esb_disable();
+    nrf_delay_ms(1);
+    esb_init();
+    nrf_delay_ms(1);
+    nrf_esb_start_rx();
+    nrf_delay_ms(1);
+}
 
+void radio_transmit_mode(){
+    nrf_delay_ms(1);
+    nrf_esb_stop_rx();
+    nrf_delay_ms(1);
+    nrf_esb_disable();
+    nrf_delay_ms(1);
+    esb_init();
+    nrf_delay_ms(1);
+    nrf_esb_start_tx();
+    nrf_delay_ms(1);
+}
 
+void radio_send_ack(){
+    convert_car_message_to_payload(&car_msg, &tx_payload);
+    radio_transmit_mode();
+    while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
+        //NOP
+    }
+    nrf_delay_ms(1); 
+    if (NRF_LOG_PROCESS() == false)
+    {
+     __WFE();
+    }
+}
 
-
+void radio_wait_for_new_message(){
+    radio_receive_mode();
+    if (NRF_LOG_PROCESS() == false)
+    {
+     __WFE();
+    }
+}
 int main(void)
 {
     ret_code_t err_code;
@@ -241,10 +217,14 @@ int main(void)
     motor_init();
     ultrasound_init();
 
-    SEGGER_RTT_WriteString(0, "CAR::::: EiT Car\r\n");
+    SEGGER_RTT_WriteString(0, "EiT Car\r\n");
     printf("Halla fra printf\r\n");
     STATE = STATE_CAR_ADVERTISE_AVAILABLE;
+    //Debug
+    STATE = STATE_CAR_SINGLE_MODE;
+    car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
     nrf_esb_start_rx();
+    int8_t i = 0;
     while (true)
     {
         /*
@@ -285,10 +265,86 @@ int main(void)
         }
         STATE = NEXT_STATE;
         */
-        if (NRF_LOG_PROCESS() == false)
-        {
-         __WFE();
-        }
+/*
+        switch(STATE) {
+            case STATE_CAR_ADVERTISE_AVAILABLE :     
+                if(remote_msg.type == MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE){
+                    SEGGER_RTT_WriteString(0, "Entered advertise mode\n");
+                    car_msg.senderID = remote_msg.senderID;
+                    car_msg.type = MSG_CAR_TYPE_ADVERTISE_AVAILABLE;
+                    convert_car_message_to_payload(&car_msg, &tx_payload);
+                    if(nrf_esb_write_payload(&tx_payload)){
+                        set_led(car_msg.senderID);
+                        NEXT_STATE = STATE_CAR_SINGLE_MODE;
+                    }
+                }
+                break;
+            case STATE_CAR_SINGLE_MODE : 
+                if(remote_msg.senderID == car_msg.senderID && remote_msg.type == MSG_REMOTE_TYPE_JOYSTICK){
+                    car_msg.type       = MSG_CAR_TYPE_ACKNOWLEDGE;
+                    car_msg.speed_info = -1;
+                    convert_car_message_to_payload(&car_msg, &tx_payload);
+                    if(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
+                        NRF_LOG_WARNING("Sending packet failed\r\n");
+                    }
+                    static uint32_t start_motor = 1;
+                    uint32_t left_speed = 0;
+                    uint32_t right_speed = 0;
+                    motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
+
+                    uint32_t left_dir =  0;
+                    uint32_t right_dir = 0;
+
+                    if(left_speed > 512){
+                        left_dir = 1;
+                        left_speed -= 512;
+                    }else {
+                        left_speed = 512 - left_speed;
+                    }
+                    if(right_speed > 512){
+                        right_dir = 1;
+                        right_speed -=512;
+                    }else{
+                        right_speed = 512 - right_speed;
+                    }
+
+                    if(start_motor){
+                        motor_start();
+                        start_motor = 0;
+                    }
+
+                    if(left_dir == right_dir){
+                        motor_set_dir(BOTH, left_dir);
+                    }else{
+                        motor_set_dir(LEFT, left_dir);
+                        motor_set_dir(RIGHT, right_dir);
+                    }
+
+                    if(left_speed == right_speed){
+                        motor_set_speed(BOTH, left_speed);
+                    }else{
+                        motor_set_speed(LEFT, left_speed);
+                        motor_set_speed(RIGHT, right_speed);
+                    }
+                }
+                break;
+        } // Switch statemachine
+        STATE = NEXT_STATE;
+
+*/      
+        
+        radio_wait_for_new_message();
+        printf("received message, senderID: %d\n", remote_msg.senderID);
+        
+        car_msg.senderID = remote_msg.senderID;
+        car_msg.speed_info=i;
+        radio_send_ack();
+        
+        printf("Wait for new message\n");
+        i++;
+        
+        
+
     }
 }
 

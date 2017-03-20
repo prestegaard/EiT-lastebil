@@ -178,7 +178,7 @@
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>Segger\JL2CM3.dll</Flash2>
-          <Flash3></Flash3>
+          <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -373,7 +373,7 @@
               <MiscControls></MiscControls>
               <Define>NRF52832 NRF52 BOARD_PCA10040 NRF52_PAN_12 NRF52_PAN_15 NRF52_PAN_20 NRF52_PAN_31 CONFIG_GPIO_AS_PINRESET NRF52_PAN_36 NRF52_PAN_51 NRF52_PAN_54 NRF52_PAN_55 NRF52_PAN_58 NRF52_PAN_64 BSP_DEFINES_ONLY ESB_PRESENT</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\config\esb_ptx_pca10040;..\..\..\config;..\..\..\..\..\..\components;..\..\..\..\..\..\components\boards;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\drivers_nrf\delay;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\drivers_nrf\nrf_soc_nosd;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\libraries\bsp;..\..\..\..\..\..\components\libraries\log;..\..\..\..\..\..\components\libraries\log\src;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\proprietary_rf\esb;..\..\..\..\..\..\components\toolchain;..\..\..;..\..\..\..\..\..\external\segger_rtt;..\config;..\..\..\..\..\..\components\drivers_nrf\saadc</IncludePath>
+              <IncludePath>..\..\..\config\esb_ptx_pca10040;..\..\..\config;..\..\..\..\..\..\components;..\..\..\..\..\..\components\boards;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\drivers_nrf\delay;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\drivers_nrf\nrf_soc_nosd;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\libraries\bsp;..\..\..\..\..\..\components\libraries\log;..\..\..\..\..\..\components\libraries\log\src;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\proprietary_rf\esb;..\..\..\..\..\..\components\toolchain;..\..\..;..\..\..\..\..\..\external\segger_rtt;..\config;..\..\..\..\..\..\components\drivers_nrf\saadc;..\..\..\..\framework</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -427,11 +427,6 @@
               <FilePath>..\config\sdk_config.h</FilePath>
             </File>
             <File>
-              <FileName>rc_messages_and_defines.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\rc_messages_and_defines.h</FilePath>
-            </File>
-            <File>
               <FileName>rc_saadc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\rc_saadc.c</FilePath>
@@ -452,14 +447,19 @@
               <FilePath>..\..\..\rc_unit_test.h</FilePath>
             </File>
             <File>
+              <FileName>rc_messages_and_defines.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\framework\rc_messages_and_defines.h</FilePath>
+            </File>
+            <File>
               <FileName>rc_utilities.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\rc_utilities.c</FilePath>
+              <FilePath>..\..\..\..\framework\rc_utilities.c</FilePath>
             </File>
             <File>
               <FileName>rc_utilities.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\..\rc_utilities.h</FilePath>
+              <FilePath>..\..\..\..\framework\rc_utilities.h</FilePath>
             </File>
           </Files>
         </Group>
