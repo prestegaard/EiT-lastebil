@@ -42,7 +42,7 @@ do { \
 
 #define printf RTT_PRINTF
  
-#define TIMEOUT 1000
+#define TIMEOUT 100
 #define RETIRES 3
 #define DELAYTIME 100
  
@@ -180,28 +180,33 @@ void radio_transmit_mode(){
 }
 
 uint32_t radio_send_and_ack_message(uint32_t timeout){
+    convert_remote_message_to_payload(&remote_msg, &tx_payload);
+    printf("Wait for ack:\n");   
+    receive_ack = 0;
     for(uint32_t i=0; i<RETIRES; i++){
+        uint32_t wait = timeout;
+        //printf("before transmit mode\n");
         radio_transmit_mode();
-        printf("SenderID: %d \r\n", remote_msg.senderID);   
-        convert_remote_message_to_payload(&remote_msg, &tx_payload);
-        receive_ack = 0;
+        //printf("after transmit mode\n");
         while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
             //NOP
         }
-    
+        //printf("after write payload\n");
         radio_receive_mode();
-        while(--timeout > 0){
+        //printf("after receive mode\n");
+        while(--wait > 0){
             if(receive_ack){
                 break;
             }
             nrf_delay_ms(1);
         }
         if(receive_ack){
-            printf("After timeout loop\n");        
+            printf("Received ack\n");        
             break;
         }
-        else
-            printf("timeout occred\n");
+        else{
+            printf("timeout occred, retry number: %d\n", i);
+        }
     }
     return receive_ack;
 }
@@ -233,7 +238,7 @@ int main(void)
         
         switch (STATE){
             case STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT :
-                printf("State: WAIT FOR CHANNEL"); 
+                printf("State: WAIT FOR CHANNEL\n"); 
                 while(!get_pressed_button()){
                     // Wait until user presses button and selects sender ID
                 }
@@ -243,14 +248,13 @@ int main(void)
                 break;
                 
             case STATE_REMOTE_ADVERTISE_AVAILABLE :
-                printf("State: ADVERTISE AVAILABLE");
+                printf("State: ADVERTISE AVAILABLE\n");
                 printf("Advertising with SenderID: %d\n", remote_msg.senderID);
                 remote_msg.type = MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE;
                 // Wait until remote receives car available
-          
-                convert_remote_message_to_payload(&remote_msg, &tx_payload);
                 uint32_t connection_establihed = 0;
                 while(NEXT_STATE == STATE_REMOTE_ADVERTISE_AVAILABLE){
+                    printf("Advertise");
                     connection_establihed = radio_send_and_ack_message(100); // 100 ms between each resend
                     if(connection_establihed){
                         NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
