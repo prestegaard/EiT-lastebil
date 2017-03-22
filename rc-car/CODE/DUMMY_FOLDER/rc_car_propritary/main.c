@@ -83,12 +83,14 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
             (void) nrf_esb_start_tx();
             break;
         case NRF_ESB_EVENT_RX_RECEIVED:
+						printf("%s\n","RX Event");
             nrf_delay_ms(2);
             if (nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
             {
                 if (rx_payload.length > 0)
                 {
-                    nrf_delay_ms(2);                                   
+                    nrf_delay_ms(2);   
+										
 
                     if(extract_sender_id_from_payload(&rx_payload) == car_msg.senderID){
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
@@ -111,7 +113,11 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                     }else{
                         switch(extract_type_from_payload(&rx_payload)){
                             case MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE:
+																nrf_delay_ms(2);
+																printf("%s\n","MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE");
                                 if(STATE == STATE_CAR_WAIT_FOR_REMOTE){
+																		nrf_delay_ms(2);
+																		printf("%s\n","NExt -> STATE_CAR_SINGLE_MODEs");	
                                     convert_payload_to_remote_message(&remote_msg, &rx_payload);
                                     NEXT_STATE = STATE_CAR_SINGLE_MODE;
                                 }
@@ -242,6 +248,7 @@ void radio_wait_for_new_message(){
 uint32_t radio_send_and_ack_master_message(){
     for(uint32_t i=0; i<RETIRES; i++){
         radio_transmit_mode();
+				nrf_delay_ms(2);
         printf("SenderID: %d \r\n", remote_msg.senderID);   
         convert_master_message_to_payload(&master_msg, &tx_payload);
         receive_ack = 0;
@@ -285,8 +292,6 @@ int main(void)
     ultrasound_init();
 
     STATE = STATE_CAR_WAIT_FOR_REMOTE;
-    //Debug
-    STATE = STATE_CAR_SINGLE_MODE;
     car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
     nrf_esb_start_rx();
     int8_t i = 0;
@@ -304,15 +309,17 @@ int main(void)
     uint32_t dist = 0;
 
     kalman_state kalman = kalman_init(0.3,3,0,0);
-    while (true)
+		printf("%s\n","STARTING CAR");
+    while (true){
         // Wait for message from remote or lead car.
         radio_wait_for_new_message();
 
         switch(STATE){
             case STATE_CAR_WAIT_FOR_REMOTE:
                 // Wait until a remote is ready to connect.
+								nrf_delay_ms(2);
                 printf("%s\n","STATE_CAR_WAIT_FOR_REMOTE" );
-                while(NEXT_STATE != STATE_CAR_SINGLE_MODE);
+                //while(NEXT_STATE != STATE_CAR_SINGLE_MODE);
                 car_msg.type = MSG_CAR_TYPE_CONNECTED_TO;
                 my_id = remote_msg.senderID;
                 car_msg.senderID = my_id;
@@ -377,10 +384,9 @@ int main(void)
                 master_msg.speed_info = remote_msg.x;
                 radio_send_and_ack_master_message();
                 break;  
-
-
-
         }
+		STATE = NEXT_STATE;
+    x}
     {
         
        /* switch (STATE){
