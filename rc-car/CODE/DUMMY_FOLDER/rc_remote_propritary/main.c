@@ -186,10 +186,14 @@ uint32_t radio_send_and_ack_message(uint32_t timeout){
     for(uint32_t i=0; i<RETIRES; i++){
         uint32_t wait = timeout;
         //printf("before transmit mode\n");
-        radio_transmit_mode();
         //printf("after transmit mode\n");
+        radio_transmit_mode();
         while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
             //NOP
+        }
+        if (NRF_LOG_PROCESS() == false)
+        {
+         __WFE();
         }
         //printf("after write payload\n");
         radio_receive_mode();
