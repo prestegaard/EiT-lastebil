@@ -50,7 +50,7 @@ do { \
 
 #define printf RTT_PRINTF
 
-#define TIMEOUT 1000
+#define TIMEOUT 100
 #define RETIRES 3
 
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
@@ -91,6 +91,8 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                 {
                     nrf_delay_ms(2);   
 										
+                    printf("RX with payload\n");
+                    nrf_delay_ms(2);                                   
 
                     if(extract_sender_id_from_payload(&rx_payload) == car_msg.senderID){
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
@@ -245,20 +247,25 @@ void radio_wait_for_new_message(){
     }
 }
 
-uint32_t radio_send_and_ack_master_message(){
+uint32_t radio_send_and_ack_master_message(uint32_t timeout){
+    convert_master_message_to_payload(&master_msg, &tx_payload);
+    printf("Wait for master ack\n");   
+    receive_ack = 0;
     for(uint32_t i=0; i<RETIRES; i++){
+        uint32_t wait = timeout;
         radio_transmit_mode();
-				nrf_delay_ms(2);
+
+		nrf_delay_ms(2);
         printf("SenderID: %d \r\n", remote_msg.senderID);   
         convert_master_message_to_payload(&master_msg, &tx_payload);
         receive_ack = 0;
+
         while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
             //NOP
         }
     
         radio_receive_mode();
-        uint32_t timeout = TIMEOUT;
-        while(--timeout > 0){
+        while(--wait > 0){
             if(receive_ack){
                 break;
             }
@@ -269,7 +276,7 @@ uint32_t radio_send_and_ack_master_message(){
             break;
         }
         else
-            printf("timeout occred\n");
+            printf("timeout occred, retry nunber: %d\n", i);
     }
     return receive_ack;
 }
@@ -292,7 +299,8 @@ int main(void)
     ultrasound_init();
 
     STATE = STATE_CAR_WAIT_FOR_REMOTE;
-    car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
+    car_msg.type = MSG_CAR_TYPE_CONNECTED_TO;
+
     nrf_esb_start_rx();
     int8_t i = 0;
 
@@ -309,17 +317,21 @@ int main(void)
     uint32_t dist = 0;
 
     kalman_state kalman = kalman_init(0.3,3,0,0);
-		printf("%s\n","STARTING CAR");
-    while (true){
+	
+    printf("%s\n","STARTING CAR");
+    while (true)
+    {
         // Wait for message from remote or lead car.
         radio_wait_for_new_message();
-
         switch(STATE){
             case STATE_CAR_WAIT_FOR_REMOTE:
                 // Wait until a remote is ready to connect.
 								nrf_delay_ms(2);
                 printf("%s\n","STATE_CAR_WAIT_FOR_REMOTE" );
                 //while(NEXT_STATE != STATE_CAR_SINGLE_MODE);
+                while(NEXT_STATE != STATE_CAR_SINGLE_MODE){
+                    nrf_delay_ms(1);
+                }
                 car_msg.type = MSG_CAR_TYPE_CONNECTED_TO;
                 my_id = remote_msg.senderID;
                 car_msg.senderID = my_id;
@@ -361,9 +373,9 @@ int main(void)
                 dist = ultrasound_get_distance();
                 kalman_update(&kalman, (double) dist);
                 dist = (uint32_t) kalman.x;
-                uint32_t speed = get_speed(0.1, dist, master_msg.speed_info, &last_error, &integral);
+                //uint32_t speed = get_speed(0.1, dist, master_msg.speed_info, &last_error, &integral);
 
-                set_motors(speed, speed, FORWARD, FORWARD);
+                //set_motors(speed, speed, FORWARD, FORWARD);
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE_MASTER;
                 radio_send_ack();
                 break;
@@ -382,132 +394,10 @@ int main(void)
                 radio_send_ack();
 
                 master_msg.speed_info = remote_msg.x;
-                radio_send_and_ack_master_message();
+                radio_send_and_ack_master_message(TIMEOUT);
                 break;  
         }
 		STATE = NEXT_STATE;
-    x}
-    {
-        
-       /* switch (STATE){
-            case STATE_CAR_WAIT_FOR_REMOTE :
-                car_msg.senderID = 0;
-                //SEGGER_RTT_WriteString(0, "CAR::::: Advertising with SenderID: %d\r\n", car_msg.senderID);
-                //car_msg.type = MSG_CAR_CONNECTED_TO;
-                //convert_car_message_to_payload(&car_msg, &tx_payload);
-                
-
-                // Wait until remote receives car available
-                while(NEXT_STATE == STATE_CAR_WAIT_REMOTE){
-                    // NEXT_STATE gets updated in rx handler if correct message is received
-                    
-                    SEGGER_RTT_WriteString(0, "CAR::::: ADVERTISING\r\n");
-
-                    if(nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
-                    {
-                        if (rx_payload.length > 0){
-                            SEGGER_RTT_WriteString(0,"Received something\r\n");       
-                        }
-                        if(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
-                            SEGGER_RTT_WriteString(0,"Sending packet failed\r\n");
-                        }
-                    }
-                    nrf_delay_ms(100);
-                }
-                // Exit procedure after connection is made; single mode
-                SEGGER_RTT_WriteString(0, "CAR::::: Connected to remote: \r\n");
-                break;
-            case STATE_CAR_SINGLE_MODE :
-     
-
-            case STATE_CAR_TRUCK_POOLING_PENDING :
-                SEGGER_RTT_WriteString(0, "CAR::::: State: TRUCK POOLING PENDING, switches back to single mode\r\n");
-                NEXT_STATE = STATE_CAR_SINGLE_MODE;
-                break;
-
-        }
-        STATE = NEXT_STATE;
-       
-/*
-        switch(STATE) {
-            case STATE_CAR_ADVERTISE_AVAILABLE :     
-                if(remote_msg.type == MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE){
-                    SEGGER_RTT_WriteString(0, "Entered advertise mode\n");
-                    car_msg.senderID = remote_msg.senderID;
-                    car_msg.type = MSG_CAR_TYPE_ADVERTISE_AVAILABLE;
-                    convert_car_message_to_payload(&car_msg, &tx_payload);
-                    if(nrf_esb_write_payload(&tx_payload)){
-                        set_led(car_msg.senderID);
-                        NEXT_STATE = STATE_CAR_SINGLE_MODE;
-                    }
-                }
-                break;
-            case STATE_CAR_SINGLE_MODE : 
-                if(remote_msg.senderID == car_msg.senderID && remote_msg.type == MSG_REMOTE_TYPE_JOYSTICK){
-                    car_msg.type       = MSG_CAR_TYPE_ACKNOWLEDGE;
-                    car_msg.speed_info = -1;
-                    convert_car_message_to_payload(&car_msg, &tx_payload);
-                    if(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
-                        NRF_LOG_WARNING("Sending packet failed\r\n");
-                    }
-                    static uint32_t start_motor = 1;
-                    uint32_t left_speed = 0;
-                    uint32_t right_speed = 0;
-                    motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
-
-                    uint32_t left_dir =  0;
-                    uint32_t right_dir = 0;
-
-                    if(left_speed > 512){
-                        left_dir = 1;
-                        left_speed -= 512;
-                    }else {
-                        left_speed = 512 - left_speed;
-                    }
-                    if(right_speed > 512){
-                        right_dir = 1;
-                        right_speed -=512;
-                    }else{
-                        right_speed = 512 - right_speed;
-                    }
-
-                    if(start_motor){
-                        motor_start();
-                        start_motor = 0;
-                    }
-
-                    if(left_dir == right_dir){
-                        motor_set_dir(BOTH, left_dir);
-                    }else{
-                        motor_set_dir(LEFT, left_dir);
-                        motor_set_dir(RIGHT, right_dir);
-                    }
-
-                    if(left_speed == right_speed){
-                        motor_set_speed(BOTH, left_speed);
-                    }else{
-                        motor_set_speed(LEFT, left_speed);
-                        motor_set_speed(RIGHT, right_speed);
-                    }
-                }
-                break;
-        } // Switch statemachine
-        STATE = NEXT_STATE;
-       
-        radio_wait_for_new_message();
-        printf("received message, senderID: %d\n", remote_msg.senderID);
-        
-        car_msg.senderID = remote_msg.senderID;
-        car_msg.speed_info=i;
-        radio_send_ack();
-        
-        printf("Wait for new message\n");
-        i++;
-
-        */
-        
-        
-
     }
 }
 

@@ -42,9 +42,10 @@ do { \
 
 #define printf RTT_PRINTF
  
-#define TIMEOUT 1000
+#define TIMEOUT 100
 #define RETIRES 3
-
+#define DELAYTIME 100
+ 
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
 
 static nrf_esb_payload_t        rx_payload;
@@ -80,11 +81,28 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                 {
                     convert_payload_to_car_message(&car_msg, &rx_payload);
                     switch(STATE) {
+                        case STATE_REMOTE_ADVERTISE_AVAILABLE :
+                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_CONNECTED_TO){
+                                receive_ack = 1;
+                            }
+                            break;
                         case STATE_REMOTE_SINGLE_MODE : 
                             if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
                                 receive_ack = 1;
                             }
                             break;
+                        case STATE_REMOTE_TRUCK_POOLING_PENDING :
+                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
+                                receive_ack = 1;
+                            }
+                            else if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACCEPT_POOLING){
+                                receive_ack = 2;
+                            }
+                            break;
+                         case STATE_REMOTE_TRUCK_POOLING_ENABLED :
+                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
+                                receive_ack = 1;
+                            }
                     }
                 }
             }
@@ -105,13 +123,6 @@ void clocks_start( void )
 
 
 
-// Changes made:
-/*
-* added payload.length = 11 instead of default config 32
-* changed to PROTOCOL_ESB, not PROTOCOL_ESB_DPL (dynamig payload length)
-* added typedef remote_packet struct remote_msg
-
-*/
 uint32_t esb_init( void )
 {
     uint32_t err_code;
@@ -168,30 +179,38 @@ void radio_transmit_mode(){
     nrf_delay_ms(1);
 }
 
-uint32_t radio_send_and_ack_message(){
+uint32_t radio_send_and_ack_message(uint32_t timeout){
+    convert_remote_message_to_payload(&remote_msg, &tx_payload);
+    printf("Wait for ack:\n");   
+    receive_ack = 0;
     for(uint32_t i=0; i<RETIRES; i++){
+        uint32_t wait = timeout;
+        //printf("before transmit mode\n");
+        //printf("after transmit mode\n");
         radio_transmit_mode();
-        printf("SenderID: %d \r\n", remote_msg.senderID);   
-        convert_remote_message_to_payload(&remote_msg, &tx_payload);
-        receive_ack = 0;
         while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
             //NOP
         }
-    
+        if (NRF_LOG_PROCESS() == false)
+        {
+         __WFE();
+        }
+        //printf("after write payload\n");
         radio_receive_mode();
-        uint32_t timeout = TIMEOUT;
-        while(--timeout > 0){
+        //printf("after receive mode\n");
+        while(--wait > 0){
             if(receive_ack){
                 break;
             }
             nrf_delay_ms(1);
         }
         if(receive_ack){
-            printf("After timeout loop\n");        
+            printf("Received ack\n");        
             break;
         }
-        else
-            printf("timeout occred\n");
+        else{
+            printf("timeout occred, retry number: %d\n", i);
+        }
     }
     return receive_ack;
 }
@@ -214,108 +233,90 @@ int main(void)
 
     SEGGER_RTT_WriteString(0, "EiT Remote\r\n");
     STATE = STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT;
+    NEXT_STATE = STATE;
+    remote_msg.x = 0;
+    remote_msg.y = 0;
     nrf_esb_start_tx();
-    // Debug: 
-    STATE = STATE_REMOTE_SINGLE_MODE;
-    
     while (true)
     {
-        /*
+        
         switch (STATE){
-            case STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT : 
+            case STATE_REMOTE_WAIT_FOR_CHANNEL_SELECT :
+                printf("State: WAIT FOR CHANNEL\n"); 
                 while(!get_pressed_button()){
                     // Wait until user presses button and selects sender ID
                 }
                 remote_msg.senderID = get_pressed_button();
-								printf("SenderID: %d \r\n", remote_msg.senderID);
-                //SEGGER_RTT_printf(0, "SenderID is selected: %d\r\n", remote_msg.senderID);
-                SEGGER_RTT_WriteString(0, "SenderID is selected\r\n");
-                                NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
+                printf("SenderID is selected: %d\n", remote_msg.senderID);
+                NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
                 break;
                 
             case STATE_REMOTE_ADVERTISE_AVAILABLE :
-                //SEGGER_RTT_printf(0, "Advertising with SenderID: %d\r\n", remote_msg.senderID);
-                SEGGER_RTT_WriteString(0, "Advertising with SenderID: \r\n");
+                printf("State: ADVERTISE AVAILABLE\n");
+                printf("Advertising with SenderID: %d\n", remote_msg.senderID);
                 remote_msg.type = MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE;
                 // Wait until remote receives car available
-                remote_msg.x = 0;
+                uint32_t connection_establihed = 0;
                 while(NEXT_STATE == STATE_REMOTE_ADVERTISE_AVAILABLE){
-                    remote_msg.x ++;
-                    //remote_msg.type ++;
-                    convert_remote_message_to_payload(&remote_msg, &tx_payload);
-                    // NEXT_STATE gets updated in rx handler if correct message is received
-                    nrf_esb_write_payload(&tx_payload);
-                    SEGGER_RTT_WriteString(0, "REMOTE::: Advertising \r\n");
-                    if(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
-                        SEGGER_RTT_WriteString(0,"Sending packet failed\r\n");
+                    printf("Advertise");
+                    connection_establihed = radio_send_and_ack_message(100); // 100 ms between each resend
+                    if(connection_establihed){
+                        NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                        break;
                     }
-                    if(nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
-                    {
-                        if (rx_payload.length > 0){
-                            SEGGER_RTT_WriteString(0,"Received something\r\n");
-                            NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
-                            break;       
-                        }
-                    }                    
-                    nrf_delay_ms(100);
                 }
-                // Exit procedure after connection is made; single mode
                 set_led(remote_msg.senderID);
-                SEGGER_RTT_WriteString(0, "Connected to car\r\n");
+                printf("Connected to car\n");
                 break;
+
             case STATE_REMOTE_SINGLE_MODE :
-                SEGGER_RTT_WriteString(0, "REMOTE::: STATE SINGLE MODE\r\n");
+                printf("State: SINGLE MODE\n");
                 remote_msg.type    = MSG_REMOTE_TYPE_JOYSTICK;
                 remote_msg.x       = joystick_read(x_dir);
                 remote_msg.y       = joystick_read(y_dir);
                 remote_msg.button  = joystick_button_read();
-                convert_remote_message_to_payload(&remote_msg, &tx_payload);
-                receive_ack = 0;
-                if(nrf_esb_write_payload(&tx_payload) == NRF_SUCCESS){
-                    uint32_t timeout = 64000000; // 64 mill, aka 1 second timeout
-                    while(!receive_ack && --timeout > 0){
-                        // Wait for ack, gets updated in rx handler
+                if(radio_send_and_ack_message(TIMEOUT)){
+                    if(remote_msg.button){
+                        NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_PENDING;
+                        break;
                     }
-                    if(receive_ack){
-                        if(remote_msg.button == 1){
-                            NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_PENDING;
-                        }
-                        else{
-                            NEXT_STATE = STATE;
-                        }
-                    }
-                    else{
-                        // No ack reveiced, aka connection lost.
-                        NRF_LOG_WARNING("No ack received, return to advertise mode\r\n");
-                        NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
-                    }    
                 }
-                else
-                {
-                    NRF_LOG_WARNING("Sending packet failed\r\n");
-                }
+                else // Connection lost, try to connect again first
+                    NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
                 break;
 
             case STATE_REMOTE_TRUCK_POOLING_PENDING :
-                SEGGER_RTT_WriteString(0, "State: TRUCK POOLING PENDING, switches back to single mode\r\n");
-                NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                printf("State: TRUCK POOLING PENDING\n");
+                remote_msg.type    = MSG_REMOTE_TYPE_JOYSTICK;
+                remote_msg.x       = joystick_read(x_dir);
+                remote_msg.y       = joystick_read(y_dir);
+                remote_msg.button  = joystick_button_read();
+                if(radio_send_and_ack_message(TIMEOUT)){
+                    if(receive_ack == 1)
+                        NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_PENDING;
+                    else if(receive_ack == 2)
+                        NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_ENABLED;
+                }
+                else //Connection lost, try to connect again first
+                    NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE; 
                 break;
 
+            case STATE_REMOTE_TRUCK_POOLING_ENABLED :
+                printf("State: TRUCK POOLING ENABLED\n");
+                while(!joystick_button_read()){
+                    //NOP
+                }
+                remote_msg.type    = STATE_REMOTE_TRUCK_POOLING_STOP;
+                remote_msg.x       = 0;
+                remote_msg.y       = 0;
+                remote_msg.button  = joystick_button_read();
+                if(radio_send_and_ack_message(TIMEOUT)){
+                    NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                }
+                break;
         }
         STATE = NEXT_STATE;
-        */
-        while(!get_pressed_button()){
-                    // Wait until user presses button and selects sender ID
-        }
-        remote_msg.senderID = get_pressed_button();
-        radio_send_and_ack_message();
-
-        while(get_pressed_button())
-        {
-           //NOP
-        }
-        printf("ReceiveID     : %d\n", car_msg.senderID);   
-        printf("Reviece speed : %d\n", car_msg.speed_info);
+        nrf_delay_ms(DELAYTIME);
     }
 
 }
