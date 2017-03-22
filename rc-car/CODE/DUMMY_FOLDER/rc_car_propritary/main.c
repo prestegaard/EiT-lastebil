@@ -51,7 +51,7 @@ do { \
 
 #define printf RTT_PRINTF
 
-#define TIMEOUT 100
+#define TIMEOUT 1000
 #define RETIRES 3
 
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
@@ -67,6 +67,7 @@ static master_packet_t master_msg;
 static uint8_t STATE;
 static uint8_t NEXT_STATE;
 static uint8_t receive_ack;
+static uint8_t recevice_message;
 
 
 
@@ -99,17 +100,20 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
                         switch(remote_msg.type){
                             case MSG_REMOTE_TYPE_JOYSTICK:
+                                recevice_message = 1;
                                 break;
 
                             case MSG_REMOTE_TYPE_REQUEST_POOLING:
                                 if(STATE == STATE_CAR_SINGLE_MODE){
                                     NEXT_STATE = STATE_CAR_TRUCK_POOLING_PENDING;
+                                    recevice_message = 1;
                                 }
                                 break;
 
                             case MSG_REMOTE_TYPE_STOP_POOLING:
                                 if(STATE == (STATE_CAR_TRUCK_POOLING_SLAVE || STATE_CAR_TRUCK_POOLING_PENDING)){
                                     NEXT_STATE = STATE_CAR_SINGLE_MODE;
+                                    recevice_message = 1;
                                 }
                                 break;
                         }
@@ -123,6 +127,7 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
 																		printf("%s\n","NExt -> STATE_CAR_SINGLE_MODEs");	
                                     convert_payload_to_remote_message(&remote_msg, &rx_payload);
                                     NEXT_STATE = STATE_CAR_SINGLE_MODE;
+                                    recevice_message = 1;
                                 }
                                 break;
                             case MSG_CAR_TYPE_SPEED_INFO:
@@ -150,8 +155,7 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
             } // read(&rx_payload) == sucsess
             break; // break case RX_EVENT
     } // Switch
-    NRF_GPIO->OUTCLR = 0xFUL << 12;
-    NRF_GPIO->OUTSET = (p_event->tx_attempts & 0x0F) << 12;
+
 } // Function
 
 
@@ -241,10 +245,21 @@ void radio_send_ack(){
 }
 
 void radio_wait_for_new_message(){
+    recevice_message = 0;
     radio_receive_mode();
-    if (NRF_LOG_PROCESS() == false)
-    {
-     __WFE();
+    uint32_t wait = TIMEOUT;
+    while(--wait){
+        if(recevice_message){
+            break;
+        }
+        nrf_delay_ms(1);
+    }
+    if(recevice_message){
+        //NOP
+    }
+    else{
+        STATE = STATE_CAR_WAIT_FOR_REMOTE;
+        NEXT_STATE = STATE;
     }
 }
 
@@ -320,9 +335,8 @@ int main(void)
     kalman_state kalman = kalman_init(0.3,3,0,0);
 	
     printf("%s\n","STARTING CAR");
-    unit_test_motor();
-    printf("unit test, done\n");
     motor_start();
+
     while (true)
     {
         // Wait for message from remote or lead car.
@@ -330,9 +344,12 @@ int main(void)
         switch(STATE){
             case STATE_CAR_WAIT_FOR_REMOTE:
                 // Wait until a remote is ready to connect.
-								nrf_delay_ms(2);
+				nrf_delay_ms(2);
                 printf("%s\n","STATE_CAR_WAIT_FOR_REMOTE" );
                 //while(NEXT_STATE != STATE_CAR_SINGLE_MODE);
+                my_id = 0;
+                car_msg.senderID = my_id;
+                set_motors(0, 0, 0, 0);
                 while(NEXT_STATE != STATE_CAR_SINGLE_MODE){
                     nrf_delay_ms(1);
                 }
@@ -345,13 +362,21 @@ int main(void)
             case STATE_CAR_SINGLE_MODE:
                 // Get joystick info from remote_msg and set side speeds accordingly
                 printf("%s\n","STATE_CAR_SINGLE_MODE" );
+                printf("X: %d\t Y: %d\n", remote_msg.x, remote_msg.y);
                 motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
-
-                left_dir =  0;
-                right_dir = 0;
-
                 motorDirections(&left_speed, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
+                printf("left_speed: %d\n", left_speed);
+                nrf_delay_ms(2);
+                printf("right_speed: %d\n", right_speed);
+                nrf_delay_ms(2);
+
+                printf("left_dir: %d\n", left_dir);
+                nrf_delay_ms(2);
+                printf("right_dir: %d\n", right_dir);
+                nrf_delay_ms(2);
+                
+                //printf("Left dir: %d\t Right dir: %d\t Left speed: %d\t Right speed %d\n", left_dir,right_dir, left_speed, right_speed);
 
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack();
