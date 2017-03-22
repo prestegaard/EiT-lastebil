@@ -8,7 +8,7 @@
 #include "rc_ultrasound.h"
 
 void unit_test_motor(){
-    printf("############### UNIT MOTOR \r\n");
+    //printf("############### UNIT MOTOR \r\n");
     // DISABLE LEFT MOTOR
     motor_set_speed(LEFT, 0);
 

@@ -10,7 +10,7 @@
 #include "rc_motor.h"
 
 
-static nrf_drv_pwm_t m_pwm0 = NRF_DRV_PWM_INSTANCE(0);
+static nrf_drv_pwm_t m_pwm0 = NRF_DRV_PWM_INSTANCE(1);
 
 // This array cannot be allocated on stack (hence "static") and it must
 // be in RAM (hence no "const", though its content is not changed).

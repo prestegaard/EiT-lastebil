@@ -275,6 +275,7 @@ int main(void)
                 remote_msg.x       = joystick_read(x_dir);
                 remote_msg.y       = joystick_read(y_dir);
                 remote_msg.button  = joystick_button_read();
+                printf("X: %d\t Y: %d \t Button: %d\n", remote_msg.x, remote_msg.y, remote_msg.button);
                 if(radio_send_and_ack_message(TIMEOUT)){
                     if(remote_msg.button){
                         NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_PENDING;

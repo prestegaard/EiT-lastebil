@@ -35,6 +35,7 @@
 #include "rc_steering.h"
 #include "rc_controller.h"
 #include "rc_filter.h"
+#include "rc_unit_test.h"
 
 // From framework
 #include "rc_messages_and_defines.h"
@@ -319,6 +320,9 @@ int main(void)
     kalman_state kalman = kalman_init(0.3,3,0,0);
 	
     printf("%s\n","STARTING CAR");
+    unit_test_motor();
+    printf("unit test, done\n");
+    motor_start();
     while (true)
     {
         // Wait for message from remote or lead car.
