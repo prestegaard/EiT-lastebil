@@ -42,8 +42,8 @@ do { \
 
 #define printf RTT_PRINTF
  
-#define TIMEOUT 100
-#define RETIRES 3
+#define TIMEOUT 500
+#define RETIRES 6
 #define DELAYTIME 100
  
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);

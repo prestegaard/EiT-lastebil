@@ -48,6 +48,7 @@ void motorDirections(uint32_t *left_speed, uint32_t *right_speed, uint32_t *left
     }else {
     	*left_dir = 0;
         *left_speed = 512 - *left_speed;
+        *left_dir = 0;
     }
 
     if(*right_speed > 512){
@@ -56,6 +57,7 @@ void motorDirections(uint32_t *left_speed, uint32_t *right_speed, uint32_t *left
     }else{
     	*right_dir = 0;
         *right_speed = 512 - *right_speed;
+        *right_dir = 0;
     }
     uint32_t temp = *right_speed*10/9;
     *right_speed = temp;
