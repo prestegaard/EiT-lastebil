@@ -10,11 +10,7 @@
       <TargetName>nrf52832_xxaa</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-<<<<<<< HEAD
       <pCCUsed>5060422::V5.06 update 4 (build 422)::ARMCC</pCCUsed>
-=======
-      <pCCUsed>5060300::V5.06 update 3 (build 300)::ARMCC</pCCUsed>
->>>>>>> 92e0df3c859fa644319084d0b027b2ab5bef252e
       <TargetOption>
         <TargetCommonOption>
           <Device>nRF52832_xxAA</Device>
@@ -449,7 +445,6 @@
               <FilePath>..\..\..\..\framework\rc_utilities.h</FilePath>
             </File>
             <File>
-<<<<<<< HEAD
               <FileName>rc_controller.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\rc_controller.c</FilePath>
@@ -460,8 +455,6 @@
               <FilePath>..\..\..\rc_controller.h</FilePath>
             </File>
             <File>
-=======
->>>>>>> 92e0df3c859fa644319084d0b027b2ab5bef252e
               <FileName>rc_filter.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\rc_filter.c</FilePath>
