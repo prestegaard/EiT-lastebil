@@ -364,7 +364,7 @@ int main(void)
                 printf("%s\n","STATE_CAR_SINGLE_MODE" );
                 printf("X: %d\t Y: %d\n", remote_msg.x, remote_msg.y);
                 motorSpeeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed);
-                motorDirections(&left_speed, &right_speed, &left_dir, &right_dir);
+                motorDirections(&left_speed, &right_speed, &left_dir, &right_dir, my_id);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
                 printf("left_speed: %d\n", left_speed);
                 nrf_delay_ms(2);
@@ -390,7 +390,7 @@ int main(void)
                 left_dir =  0;
                 right_dir = 0;
 
-                motorDirections(&left_speed, &right_speed, &left_dir, &right_dir);
+                motorDirections(&left_speed, &right_speed, &left_dir, &right_dir, my_id);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
 
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
@@ -416,7 +416,7 @@ int main(void)
                 uint32_t left_dir =  0;
                 uint32_t right_dir = 0;
 
-                motorDirections(&left_speed, &right_speed, &left_dir, &right_dir);
+                motorDirections(&left_speed, &right_speed, &left_dir, &right_dir, my_id);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
 
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;

@@ -41,7 +41,7 @@ void motorSpeeds(uint32_t inturn, uint32_t inthrottle, uint32_t *left_speed, uin
 }
 
 
-void motorDirections(uint32_t *left_speed, uint32_t *right_speed, uint32_t *left_dir, uint32_t *right_dir){
+void motorDirections(uint32_t *left_speed, uint32_t *right_speed, uint32_t *left_dir, uint32_t *right_dir, uint32_t id){
 	if(*left_speed > 512){
         *left_dir = 1;
         *left_speed -= 512;
@@ -59,8 +59,14 @@ void motorDirections(uint32_t *left_speed, uint32_t *right_speed, uint32_t *left
         *right_speed = 512 - *right_speed;
         *right_dir = 0;
     }
-    uint32_t temp = *right_speed*10/9;
-    *right_speed = temp;
+
+    if(id == 1){
+    	uint32_t temp =*left_speed*10/9;
+    	*left_speed = temp;
+    }else if(id == 2 || id == 0){
+    	uint32_t temp = *right_speed*10/9;
+    	*right_speed = temp;
+    }
 }
 
 // In main loop, after motor speeds are desided
