@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-uint32_t get_speed(float iteration_time, uint32_t measured, uint32_t feed, float *last_error, float *integral);
+double get_speed(double iteration_time, int32_t measured, int32_t feed, double *last_error, double *integral);
 
 #endif
 
