@@ -80,7 +80,7 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                 if (rx_payload.length > 0)
                 {
                     uint32_t senderID = extract_sender_id_from_payload(&rx_payload);
-                    if(STATE != STATE_REMOTE_ADVERTISE_AVAILABLE && senderID == remote_msg.senderID){
+                    if(senderID == remote_msg.senderID){
 
                         convert_payload_to_car_message(&car_msg, &rx_payload);
                         switch(STATE) {
@@ -112,6 +112,8 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
             }
             break;
     }
+    NRF_GPIO->OUTCLR = 0xFUL << 12;
+    NRF_GPIO->OUTSET = (p_event->tx_attempts & 0x0F) << 12;
 }
 
 
