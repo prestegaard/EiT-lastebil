@@ -64,6 +64,7 @@ static nrf_esb_payload_t        rx_payload;
 static remote_packet_t remote_msg;
 static car_packet_t car_msg;
 static master_packet_t master_msg;
+static int my_id;
 static uint8_t STATE;
 static uint8_t NEXT_STATE;
 static uint8_t receive_ack;
@@ -260,6 +261,7 @@ void radio_wait_for_new_message(){
     else{
         STATE = STATE_CAR_WAIT_FOR_REMOTE;
         NEXT_STATE = STATE;
+        clear_led(my_id);
     }
 }
 
@@ -320,7 +322,7 @@ int main(void)
     nrf_esb_start_rx();
     int8_t i = 0;
 
-    int my_id = 0;
+    my_id = 0;
 
     uint32_t left_speed = 0;
     uint32_t right_speed = 0;
