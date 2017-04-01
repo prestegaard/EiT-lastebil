@@ -395,11 +395,15 @@ int main(void)
                 car_msg.senderID = my_id;
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack(); // to remote
+
                 // create request message
                 nrf_delay_ms(2);
                 car_msg.senderID = 0;
                 car_msg.type = MSG_CAR_TYPE_REQUEST_POOLING;
-                radio_send_ack(); // to master car
+                for(uint8_t i=0; i<5; i++){
+                    radio_send_ack(); // to master car
+                    nrf_delay_ms(2);
+                }
                 break;
 
             case STATE_CAR_TRUCK_POOLING_SLAVE:
@@ -418,16 +422,25 @@ int main(void)
                 car_msg.senderID = 0;
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE_MASTER;
                 radio_send_ack(); // to master car
+
+                
                 recevice_slave_message_from_remote = 0;
-                while(!recevice_slave_message_from_remote){
+                uint32_t timeout = TIMEOUT;
+                while(--timeout){
+                    if(recevice_slave_message_from_remote){
+                        break;
+                    }
                     //NOP
-                nrf_delay_ms(1);
+                    nrf_delay_ms(1);
                 }
-
-
-                car_msg.senderID = my_id;
-                car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
-                radio_send_ack(); // to remote
+                if(recevice_slave_message_from_remote){
+                    car_msg.senderID = my_id;
+                    car_msg.type = MSG_CAR_TYPE_POLING_SLAVE;
+                    radio_send_ack(); // to remote       
+                }
+                else{
+                    NEXT_STATE = STATE_CAR_WAIT_FOR_REMOTE;
+                }
                 // create request message
                 break;
 
