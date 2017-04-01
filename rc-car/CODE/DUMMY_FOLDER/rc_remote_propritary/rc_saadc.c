@@ -80,20 +80,20 @@ uint32_t joystick_read(uint32_t direction){
         nrf_drv_saadc_sample_convert(0, adc_val[0]);
         if(adc_val[0][0] < 0){
             ret_val = 0;
-            return ret_val;
+            return 1023 - ret_val;
         }
-        return (uint32_t)adc_val[0][0];
+        return 1023 - (uint32_t)adc_val[0][0];
     }
     else if (direction == y_dir){
         nrf_drv_saadc_sample_convert(1, adc_val[1]);
         if(adc_val[1][0] < 0){
             ret_val = 0;
-            return ret_val;
+            return 1023 - ret_val;
         }
-        return (uint32_t)adc_val[1][0];
+        return 1023 - (uint32_t)adc_val[1][0];
     }
     else 
-        return ret_val;
+        return 1023 - ret_val;
 }
 
 /** @} */
