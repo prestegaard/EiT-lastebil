@@ -51,7 +51,7 @@ do { \
 
 #define printf RTT_PRINTF
 
-#define TIMEOUT 1000
+#define TIMEOUT 2000
 #define RETIRES 3
 
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
@@ -95,18 +95,24 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                     if(extract_sender_id_from_payload(&rx_payload) == car_msg.senderID){
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
                         switch(remote_msg.type){
-                            case MSG_REMOTE_TYPE_JOYSTICK:
+                            case MSG_REMOTE_TYPE_SINGLE_MODE_STEERING:
                                 recevice_message = 1;
                                 break;
 
-                            case MSG_REMOTE_TYPE_REQUEST_POOLING:
+                            case MSG_REMOTE_TYPE_TRUCK_POOLING_REQUEST:
                                 if(STATE == STATE_CAR_SINGLE_MODE){
-                                    NEXT_STATE = STATE_CAR_TRUCK_POOLING_PENDING;
+                                    printf("%s\n", "NEXT - POOLING_PENDING");
+                                    STATE = STATE_CAR_TRUCK_POOLING_PENDING;
+                                    NEXT_STATE = STATE;
                                     recevice_message = 1;
+                                }else if(STATE == STATE_CAR_TRUCK_POOLING_PENDING){
+                                    recevice_message = 1;
+                                }else if(STATE == STATE_CAR_TRUCK_POOLING_SLAVE){
+                                    recevice_slave_message_from_remote = 1;
                                 }
                                 break;
 
-                            case MSG_REMOTE_TYPE_STOP_POOLING:
+                            case MSG_REMOTE_TYPE_TRUCK_POOLING_STOP:
                                 if(STATE == (STATE_CAR_TRUCK_POOLING_SLAVE || STATE_CAR_TRUCK_POOLING_PENDING)){
                                     NEXT_STATE = STATE_CAR_SINGLE_MODE;
                                     recevice_message = 1;
@@ -132,6 +138,10 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                                 break;
                             case MSG_CAR_TYPE_SPEED_INFO:
                                 convert_payload_to_master_message(&master_msg, &rx_payload);
+                                 if(STATE == STATE_CAR_TRUCK_POOLING_PENDING){
+                                    NEXT_STATE = STATE_CAR_TRUCK_POOLING_SLAVE;
+                                    recevice_message = 1;
+                                }
 
                             case MSG_CAR_TYPE_REQUEST_POOLING:
                                 if(STATE == STATE_CAR_SINGLE_MODE){
@@ -139,12 +149,6 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                                 }
                                 break;
 
-                            case MSG_CAR_TYPE_SPEED_INFO:
-                                if(STATE == STATE_CAR_TRUCK_POOLING_PENDING){
-                                    NEXT_STATE = STATE_CAR_TRUCK_POOLING_SLAVE;
-                                    recevice_message = 1;
-                                }
-                                break;
                             case MSG_CAR_TYPE_ACKNOWLEDGE_MASTER:
                                 if(STATE == STATE_CAR_TRUCK_POOLING_MASTER){
                                     receive_ack = 1;
@@ -371,25 +375,15 @@ int main(void)
                 // Get joystick info from remote_msg and set side speeds accordingly
                 steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
-                    
-                // Prints remote positions and left and right speed for debugging
-                /*printf("X: %d\t", remote_msg.x);
-                nrf_delay_ms(2);
-                printf("Y: %d\t", remote_msg.y);
-                nrf_delay_ms(2);
-                printf("left_speed: %d\t", left_speed);
-                nrf_delay_ms(2);
-                printf("right_speed: %d\n", right_speed);
-                nrf_delay_ms(2);*/
-
+  
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack();
                 break;
 
             case STATE_CAR_TRUCK_POOLING_PENDING:
                 // Get joystick info from remote_msg and set side speeds accordingly
-                printf("%s\n", "STATE_CAR_TRUCK_POOLING_PENDING");
-                steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir)
+                printf("%s\n", "POOLING_PENDING");
+                steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
 
                 car_msg.senderID = my_id;
@@ -397,17 +391,17 @@ int main(void)
                 radio_send_ack(); // to remote
 
                 // create request message
-                nrf_delay_ms(2);
+                nrf_delay_ms(1);
                 car_msg.senderID = 0;
                 car_msg.type = MSG_CAR_TYPE_REQUEST_POOLING;
                 for(uint8_t i=0; i<5; i++){
                     radio_send_ack(); // to master car
-                    nrf_delay_ms(2);
+                    nrf_delay_ms(10);
                 }
                 break;
 
             case STATE_CAR_TRUCK_POOLING_SLAVE:
-                
+                printf("%s\n", "SLAVE");
                 // Calculate foorward speed from ultrasound and feed
                 dist = ultrasound_get_distance();
                 kalman_update(&kalman, (double) dist);
@@ -426,6 +420,7 @@ int main(void)
                 
                 recevice_slave_message_from_remote = 0;
                 uint32_t timeout = TIMEOUT;
+                radio_receive_mode();
                 while(--timeout){
                     if(recevice_slave_message_from_remote){
                         break;
@@ -435,7 +430,7 @@ int main(void)
                 }
                 if(recevice_slave_message_from_remote){
                     car_msg.senderID = my_id;
-                    car_msg.type = MSG_CAR_TYPE_POLING_SLAVE;
+                    car_msg.type = MSG_CAR_TYPE_POOLING_SLAVE;
                     radio_send_ack(); // to remote       
                 }
                 else{

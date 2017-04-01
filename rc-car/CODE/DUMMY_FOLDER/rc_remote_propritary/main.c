@@ -44,7 +44,7 @@ do { \
  
 #define TIMEOUT 500
 #define RETIRES 6
-#define DELAYTIME 100
+#define DELAYTIME 300
  
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
 
@@ -75,9 +75,9 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
             break;
         case NRF_ESB_EVENT_RX_RECEIVED:
             SEGGER_RTT_WriteString(0, "RX RECEIVED EVENT\n");
-            if (nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
+            while (nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
             {
-                if (rx_payload.length > 0)
+                if (rx_payload.length > 0 && extract_sender_id_from_payload(&rx_payload) == remote_msg.senderID)
                 {
                     convert_payload_to_car_message(&car_msg, &rx_payload);
                     switch(STATE) {
@@ -95,12 +95,12 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                             if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
                                 receive_ack = 1;
                             }
-                            else if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACCEPT_POOLING){
-                                receive_ack = 2;
+                            else if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_POOLING_SLAVE){
+                                receive_ack = 1;
                             }
                             break;
                          case STATE_REMOTE_TRUCK_POOLING_ENABLED :
-                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
+                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_POOLING_SLAVE){
                                 receive_ack = 1;
                             }
                     }
@@ -108,8 +108,6 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
             }
             break;
     }
-    NRF_GPIO->OUTCLR = 0xFUL << 12;
-    NRF_GPIO->OUTSET = (p_event->tx_attempts & 0x0F) << 12;
 }
 
 
@@ -272,7 +270,7 @@ int main(void)
 
             case STATE_REMOTE_SINGLE_MODE :
                 //printf("State: SINGLE MODE\n");
-                remote_msg.type    = MSG_REMOTE_TYPE_JOYSTICK;
+                remote_msg.type    = MSG_REMOTE_TYPE_SINGLE_MODE_STEERING;
                 remote_msg.x       = joystick_read(x_dir);
                 remote_msg.y       = joystick_read(y_dir);
                 remote_msg.button  = joystick_button_read();
@@ -289,14 +287,12 @@ int main(void)
 
             case STATE_REMOTE_TRUCK_POOLING_PENDING :
                 printf("State: TRUCK POOLING PENDING\n");
-                remote_msg.type    = MSG_REMOTE_TYPE_JOYSTICK;
+                remote_msg.type    = MSG_REMOTE_TYPE_TRUCK_POOLING_REQUEST;
                 remote_msg.x       = joystick_read(x_dir);
                 remote_msg.y       = joystick_read(y_dir);
                 remote_msg.button  = joystick_button_read();
                 if(radio_send_and_ack_message(TIMEOUT)){
-                    if(receive_ack == 1)
-                        NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_PENDING;
-                    else if(receive_ack == 2)
+                    if(car_msg.type == MSG_CAR_TYPE_POOLING_SLAVE)
                         NEXT_STATE = STATE_REMOTE_TRUCK_POOLING_ENABLED;
                 }
                 else //Connection lost, try to connect again first
@@ -305,15 +301,20 @@ int main(void)
 
             case STATE_REMOTE_TRUCK_POOLING_ENABLED :
                 printf("State: TRUCK POOLING ENABLED\n");
-                while(!joystick_button_read()){
-                    //NOP
-                }
-                remote_msg.type    = STATE_REMOTE_TRUCK_POOLING_STOP;
+
+
+                remote_msg.type    = MSG_REMOTE_TYPE_TRUCK_POOLING_SLAVE;
                 remote_msg.x       = 0;
                 remote_msg.y       = joystick_read(y_dir);
                 remote_msg.button  = joystick_button_read();
-                if(radio_send_and_ack_message(TIMEOUT)){
+
+                if(remote_msg.button){
+                    remote_msg.type = MSG_REMOTE_TYPE_TRUCK_POOLING_STOP;
                     NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                }
+
+                if(!radio_send_and_ack_message(TIMEOUT)){
+                    NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
                 }
                 break;
         }
