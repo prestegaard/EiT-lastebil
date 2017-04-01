@@ -13,8 +13,4 @@ kalman_state kalman_init(double q, double r, double p, double initial_value);
 void kalman_update(kalman_state* state, double measurement);
 
 #endif // RC_FILTER__
-
-
-
-
 /** @} */
