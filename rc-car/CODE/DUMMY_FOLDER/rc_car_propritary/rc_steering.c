@@ -4,17 +4,17 @@
 #include <math.h>
 #include <string.h>
 
-#define maxVal 511
-#define max(X, Y) (((X) > (Y)) ? (X) : (Y))
-#define sign(x) ((x > 0) ? 1 : ((x < 0) ? -1 : 1))
+
+#define maxVal 512
 
 
 // Scale output to 9 bit and set direction.
-void motorSpeeds(uint32_t inturn, uint32_t inthrottle, uint32_t *left_speed, uint32_t *right_speed){
+void steering_speeds(uint32_t inturn, uint32_t inthrottle, uint32_t *left_speed, uint32_t *right_speed, uint32_t *left_dir, uint32_t *right_dir){
 	// Scale from 0..1023 to -512...511
 	int32_t turn = inturn - 512;
 	int32_t throttle = inthrottle - 512;
-	if(abs(throttle) < 10){
+	
+	if(abs(throttle) < 20){
 		throttle = 0;
 	}
 
@@ -22,97 +22,52 @@ void motorSpeeds(uint32_t inturn, uint32_t inthrottle, uint32_t *left_speed, uin
 		turn = 0;
 	}
 
-	uint32_t leftSide = throttle;
-	int32_t rightSide = throttle;
+	if(throttle > 0){
+		throttle = throttle*0.7 + 150;
+    }else if(throttle < 0){
+    	throttle = throttle*0.7 - 150;
+    }
+
+
+	int32_t left_side = throttle;
+	int32_t right_side = throttle;
 	
-	if(turn < 0){
-		leftSide = throttle + sign(throttle)*turn;
-	}else if(turn > 0){
-		rightSide = throttle - sign(throttle)*turn;
+
+	if(throttle >= 0){
+		left_side = throttle + turn;
+		right_side = throttle - turn;	
+	}else{
+		left_side = throttle - turn;
+		right_side = throttle + turn;
 	}
 
-	int norm = 1;
-	if(max(abs(leftSide), abs(rightSide)) > maxVal){
-		norm = max(abs(leftSide), abs(rightSide))/maxVal;
-	}
-
-	*left_speed = leftSide/norm + 512;
-	*right_speed = rightSide/norm + 512;
-}
-
-
-void motorDirections(uint32_t *left_speed, uint32_t *right_speed, uint32_t *left_dir, uint32_t *right_dir, uint32_t id){
-	if(*left_speed > 512){
+	if(left_side >= 0){
         *left_dir = 1;
-        *left_speed -= 512;
     }else {
     	*left_dir = 0;
-        *left_speed = 512 - *left_speed;
-        *left_dir = 0;
+    	left_side = abs(left_side);
     }
 
-    if(*right_speed > 512){
+    if(right_side >= 0){
         *right_dir = 1;
-        *right_speed -=512;
     }else{
     	*right_dir = 0;
-        *right_speed = 512 - *right_speed;
-        *right_dir = 0;
+        right_side = abs(right_side);
     }
 
-    if(id == 1){
-    	uint32_t temp =*left_speed*10/9;
-    	*left_speed = temp;
-    }else if(id == 2 || id == 0){
-    	uint32_t temp = *right_speed*10/9;
-    	*right_speed = temp;
-    }
-}
 
-// In main loop, after motor speeds are desided
-
-/*void foo(){
-	int left = 0;
-	int right = 0;
-
-	motorSpeeds(0,0, &left, &right);
-
-	uint32_t leftDir = 1;
-	uint32_t rightDir = 1;
-	if(left < 0){
-		leftDir = 0;
-		left = abs(left);
-		leftChange = true;
-	}
-	if(right < 0){
-		rightDir = 0;
-		right = abs(right);
-		rightChange = true;
+    double norm = 1;
+	if(left_side > right_side && left_side > maxVal){
+		norm = (double) left_side/maxVal;
+	}else if(right_side > left_side && right_side > maxVal){
+		norm = (double) right_side/maxVal;
 	}
 
-	if(leftDir == rightDir){
-		motor_set_dir(2, leftDir);
-	}else{
-		motor_set_dir(0, leftDir);
-		motor_set_dir(1, rightDir);
-	}
-
-	if(left == right){
-		motor_set_speed(2, left);
-	}else{
-		motor_set_speed(0, left);
-		motor_set_speed(1, right);
-	}
+	double t_left = left_side/norm;
+	double t_right = right_side/norm;
+   
+    *left_speed = (uint32_t) round(t_left);
+    *right_speed = (uint32_t) round(t_right);
 }
 
 
-int main(){
-	int left_speed = 0;
-	int right_speed = 0;
-
-	motorSpeeds(-100, 0 , &left_speed, &right_speed);
-	printf("%s%i, %s%i\n", "Left:",left_speed, "Right:",right_speed);
-
-	return 0;
-}*/
-/** @} */
