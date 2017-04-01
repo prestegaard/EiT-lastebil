@@ -205,11 +205,11 @@ uint32_t radio_send_and_ack_message(uint32_t timeout){
             nrf_delay_ms(1);
         }
         if(receive_ack){
-            printf("Received ack\n");        
+            //printf("Received ack\n");        
             break;
         }
         else{
-            printf("timeout occred, retry number: %d\n", i);
+            //printf("timeout occred, retry number: %d\n", i);
         }
     }
     return receive_ack;
@@ -247,18 +247,19 @@ int main(void)
                     // Wait until user presses button and selects sender ID
                 }
                 remote_msg.senderID = get_pressed_button();
-                printf("SenderID is selected: %d\n", remote_msg.senderID);
+								printf("SenderID is selected: %d\n", remote_msg.senderID);
                 NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
                 break;
                 
             case STATE_REMOTE_ADVERTISE_AVAILABLE :
                 printf("State: ADVERTISE AVAILABLE\n");
+								clear_led(remote_msg.senderID);
                 printf("Advertising with SenderID: %d\n", remote_msg.senderID);
                 remote_msg.type = MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE;
                 // Wait until remote receives car available
                 uint32_t connection_establihed = 0;
+                printf("Advertise");
                 while(NEXT_STATE == STATE_REMOTE_ADVERTISE_AVAILABLE){
-                    printf("Advertise");
                     connection_establihed = radio_send_and_ack_message(100); // 100 ms between each resend
                     if(connection_establihed){
                         NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
@@ -270,7 +271,7 @@ int main(void)
                 break;
 
             case STATE_REMOTE_SINGLE_MODE :
-                printf("State: SINGLE MODE\n");
+                //printf("State: SINGLE MODE\n");
                 remote_msg.type    = MSG_REMOTE_TYPE_JOYSTICK;
                 remote_msg.x       = joystick_read(x_dir);
                 remote_msg.y       = joystick_read(y_dir);
@@ -309,7 +310,7 @@ int main(void)
                 }
                 remote_msg.type    = STATE_REMOTE_TRUCK_POOLING_STOP;
                 remote_msg.x       = 0;
-                remote_msg.y       = 0;
+                remote_msg.y       = joystick_read(y_dir);
                 remote_msg.button  = joystick_button_read();
                 if(radio_send_and_ack_message(TIMEOUT)){
                     NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
