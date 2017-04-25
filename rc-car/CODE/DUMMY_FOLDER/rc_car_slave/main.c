@@ -53,6 +53,8 @@ do { \
 
 #define TIMEOUT 2000
 #define RETIRES 3
+#define ID_MASTER 1
+#define ID_SLAVE  2 
 
 static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
 
@@ -62,14 +64,14 @@ static nrf_esb_payload_t        rx_payload;
 
 
 static remote_packet_t remote_msg;
-static car_packet_t car_msg;
 static remote_packet_t master_msg;
+static car_packet_t car_msg;
 static int my_id;
 static uint8_t STATE;
 static uint8_t NEXT_STATE;
-static uint8_t receive_ack;
+
 static uint8_t recevice_message;
-static uint8_t recevice_slave_message_from_remote;
+
 
 
 
@@ -91,10 +93,12 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
             {
                 if (rx_payload.length > 0)
                 {                      
-
-                    if(extract_sender_id_from_payload(&rx_payload) == my_id){
+                    uint32_t message_id = extract_sender_id_from_payload(&rx_payload);
+                    if(message_id == SLAVE)
+                    {
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
-                        switch(remote_msg.type){
+                        switch(remote_msg.type)
+                        {
                             case MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE:
                                 if(STATE == STATE_CAR_WAIT_FOR_REMOTE){
                                     NEXT_STATE = STATE_CAR_SINGLE_MODE;
@@ -114,20 +118,24 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                                 break;
 
                             case MSG_REMOTE_TYPE_TRUCK_POOLING_STOP:
-                                if(STATE == STATE_CAR_SMART_MODE{
+                                if(STATE == STATE_CAR_SMART_MODE){
                                     NEXT_STATE = STATE_CAR_SINGLE_MODE;
                                     recevice_message = 1;
                                 }
                                 break;
                         }
-                    }else{
-                        switch(extract_type_from_payload(&rx_payload)){
-                            case MSG_CAR_TYPE_SPEED_INFO:
-                                convert_payload_to_master_message(&master_msg, &rx_payload);
-                                 if(STATE == STATE_CAR_TRUCK_POOLING_PENDING){
-                                    NEXT_STATE = STATE_CAR_TRUCK_POOLING_SLAVE;
+                    }                    
+                    else if(message_id == ID_MASTER){
+                        convert_payload_to_remote_message(&master_msg, &rx_payload);
+                        switch(master_msg.type){
+                            case MSG_REMOTE_TYPE_SINGLE_MODE_STEERING:
+                                if(STATE == STATE_CAR_SMART_MODE){
                                     recevice_message = 1;
                                 }
+                            case MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE:
+                                if(STATE == STATE_CAR_SMART_MODE){
+                                    NEXT_STATE = STATE_CAR_SINGLE_MODE;
+                                }    
 
                         }
                     }
@@ -321,7 +329,7 @@ int main(void)
 
     nrf_delay_ms(2000);
 
-    my_id = 0;
+    my_id = ID_SLAVE;
 
     while (true)
     {
@@ -342,7 +350,7 @@ int main(void)
                 radio_send_ack();
                 set_led(my_id);
                 break;
-                
+
             case STATE_CAR_SINGLE_MODE:
                 printf("%s\n","STATE_CAR_SINGLE_MODE" );
                 // Get joystick info from remote_msg and set side speeds accordingly

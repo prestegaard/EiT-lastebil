@@ -62,10 +62,12 @@ uint8_t get_pressed_button(){
         return 1;
     if(!nrf_gpio_pin_read(14))
         return 2;
+    /*
     if(!nrf_gpio_pin_read(15))
         return 3;
     if(!nrf_gpio_pin_read(16))
         return 4;
+    */    
 // Retrun 0 if no buttons are pressed
     return 0;
 }
@@ -113,32 +115,6 @@ void convert_payload_to_remote_message(remote_packet_t * remote_msg, nrf_esb_pay
     remote_msg->button   = p_payload->data[10];
 }
 
-void convert_master_message_to_payload(master_packet_t const * master_msg, nrf_esb_payload_t * p_payload){
-    uint8_t speed_info_converted;
-    if (master_msg->speed_info > 100){
-        speed_info_converted = 200;
-    }
-    else if(master_msg->speed_info > 0){
-        speed_info_converted = master_msg->speed_info + 100;
-    }
-    else if(master_msg->speed_info < -100){
-        speed_info_converted = 0;
-    }
-    else if(master_msg->speed_info < 0){
-        speed_info_converted = master_msg->speed_info + 100;
-    }
-
-    p_payload->data[0]   = master_msg->senderID;
-    p_payload->data[1]   = master_msg->type;
-    p_payload->data[2]   = speed_info_converted;   
-}
-void convert_payload_to_master_message(master_packet_t * master_msg, nrf_esb_payload_t const * p_payload){
-
-    // Make message struct
-    master_msg->senderID   = p_payload->data[0];
-    master_msg->type       = p_payload->data[1];
-    master_msg->speed_info = p_payload->data[2] - 100;
-}
 
 
 uint32_t extract_sender_id_from_payload(nrf_esb_payload_t const *p_payload){

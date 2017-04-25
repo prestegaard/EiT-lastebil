@@ -13,3 +13,5 @@ rc-car/CODE/DUMMY_FOLDER/rc_car_propritary/pca10040/blank/arm5_no_packs/car_pca1
 rc-car/CODE/DUMMY_FOLDER/rc_car_propritary/pca10040/blank/arm5_no_packs/car_pca10040.uvoptx
 rc-car/CODE/DUMMY_FOLDER/rc_remote_propritary/pca10040/blank/arm5_no_packs/RTE/_nrf52832_xxaa/RTE_Components.h
 rc-car/CODE/DUMMY_FOLDER/rc_remote_propritary/pca10040/blank/arm5_no_packs/remote_control_pca10040.uvguix.Lars
+rc-car/CODE/DUMMY_FOLDER/rc_car_slave/pca10040/blank/arm5_no_packs/_build/
+rc-car/CODE/DUMMY_FOLDER/rc_car_master/pca10040/blank/arm5_no_packs/_build/
