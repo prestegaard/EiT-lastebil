@@ -118,23 +118,9 @@ void convert_payload_to_remote_message(remote_packet_t * remote_msg, nrf_esb_pay
 
 
 uint32_t extract_sender_id_from_payload(nrf_esb_payload_t const *p_payload){
-    // Convert 8 bit array values to 32 bit single value
-    uint8_t joy_val_8_x[4] = {0};
-    uint8_t joy_val_8_y[4] = {0};
-    for(uint32_t i = 0; i < 4; i++){
-        joy_val_8_x[i] = p_payload->data[i+2];
-        joy_val_8_y[i] = p_payload->data[i+6];
-    }
     return p_payload->data[0];
 }
 uint32_t extract_type_from_payload(nrf_esb_payload_t const *p_payload){
-    // Convert 8 bit array values to 32 bit single value
-    uint8_t joy_val_8_x[4] = {0};
-    uint8_t joy_val_8_y[4] = {0};
-    for(uint32_t i = 0; i < 4; i++){
-        joy_val_8_x[i] = p_payload->data[i+2];
-        joy_val_8_y[i] = p_payload->data[i+6];
-    }
     return p_payload->data[1];
 }
 
