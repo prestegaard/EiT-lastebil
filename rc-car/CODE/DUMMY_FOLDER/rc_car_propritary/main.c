@@ -95,63 +95,39 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                     if(extract_sender_id_from_payload(&rx_payload) == my_id){
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
                         switch(remote_msg.type){
+                            case MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE:
+                                if(STATE == STATE_CAR_WAIT_FOR_REMOTE){
+                                    NEXT_STATE = STATE_CAR_SINGLE_MODE;
+                                    recevice_message = 1;
+                                }
+                                break;
+                                
                             case MSG_REMOTE_TYPE_SINGLE_MODE_STEERING:
                                 recevice_message = 1;
                                 break;
 
-                            case MSG_REMOTE_TYPE_TRUCK_POOLING_REQUEST:
+                            case MSG_REMOTE_TYPE_TRUCK_POOLING_START:
                                 if(STATE == STATE_CAR_SINGLE_MODE){
-                                    printf("%s\n", "NEXT - POOLING_PENDING");
-                                    STATE = STATE_CAR_TRUCK_POOLING_PENDING;
-                                    NEXT_STATE = STATE;
+                                    NEXT_STATE = STATE_CAR_SMART_MODE;
                                     recevice_message = 1;
-                                }else if(STATE == STATE_CAR_TRUCK_POOLING_PENDING){
-                                    recevice_message = 1;
-                                }else if(STATE == STATE_CAR_TRUCK_POOLING_SLAVE){
-                                    recevice_slave_message_from_remote = 1;
                                 }
                                 break;
 
                             case MSG_REMOTE_TYPE_TRUCK_POOLING_STOP:
-                                if(STATE == (STATE_CAR_TRUCK_POOLING_SLAVE || STATE_CAR_TRUCK_POOLING_PENDING)){
+                                if(STATE == STATE_CAR_SMART_MODE{
                                     NEXT_STATE = STATE_CAR_SINGLE_MODE;
                                     recevice_message = 1;
                                 }
                                 break;
-                            case MSG_REMOTE_TYPE_TRUCK_POOLING_SLAVE:
-                                if(STATE == STATE_CAR_TRUCK_POOLING_SLAVE){
-                                    recevice_slave_message_from_remote = 1;
-                                }    
                         }
                     }else{
                         switch(extract_type_from_payload(&rx_payload)){
-                            case MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE:
-                                nrf_delay_ms(2);
-                                 if(STATE == STATE_CAR_WAIT_FOR_REMOTE && (my_id == 0 || remote_msg.senderID == my_id) ){
-                                    printf("%s\n","MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE");
-                                    nrf_delay_ms(2);
-                                    printf("%s\n","NExt -> STATE_CAR_SINGLE_MODEs");    
-                                    convert_payload_to_remote_message(&remote_msg, &rx_payload);
-                                    NEXT_STATE = STATE_CAR_SINGLE_MODE;
-                                    recevice_message = 1;
-                                }
-                                break;
+                          
                             case MSG_CAR_TYPE_SPEED_INFO:
                                 convert_payload_to_master_message(&master_msg, &rx_payload);
                                  if(STATE == STATE_CAR_TRUCK_POOLING_PENDING){
                                     NEXT_STATE = STATE_CAR_TRUCK_POOLING_SLAVE;
                                     recevice_message = 1;
-                                }
-
-                            case MSG_CAR_TYPE_REQUEST_POOLING:
-                                if(STATE == STATE_CAR_SINGLE_MODE){
-                                    NEXT_STATE = STATE_CAR_TRUCK_POOLING_MASTER;
-                                }
-                                break;
-
-                            case MSG_CAR_TYPE_ACKNOWLEDGE_MASTER:
-                                if(STATE == STATE_CAR_TRUCK_POOLING_MASTER){
-                                    receive_ack = 1;
                                 }
 
                         }
@@ -278,7 +254,7 @@ uint32_t radio_send_and_ack_master_message(uint32_t timeout){
         radio_transmit_mode();
 
         nrf_delay_ms(2);
-        printf("SenderID: %d \r\n", remote_msg.senderID);   
+        printf("Master SenderID: %d \n", master_msg.senderID);   
         convert_master_message_to_payload(&master_msg, &tx_payload);
         receive_ack = 0;
 
@@ -394,18 +370,18 @@ int main(void)
                 car_msg.senderID = 0;
                 car_msg.type = MSG_CAR_TYPE_REQUEST_POOLING;
                 convert_car_message_to_payload(&car_msg, &tx_payload);
-                for(uint8_t i=0; i<5; i++){
+                for(uint8_t i=0; i<1; i++){
                     //radio_send_ack(); // to master car
 
                     while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
                         //NOP
                     }
                     nrf_delay_ms(1); 
-                    /*if (NRF_LOG_PROCESS() == false)
+                    if (NRF_LOG_PROCESS() == false)
                     {
                      __WFE();
                     }
-                    nrf_delay_ms(10);*/
+                    nrf_delay_ms(10);a
                 }
                 break;
 
@@ -460,7 +436,9 @@ int main(void)
                 master_msg.type = MSG_CAR_TYPE_SPEED_INFO;
                 master_msg.senderID = 0;
                 master_msg.speed_info = remote_msg.x;
-                radio_send_and_ack_master_message(TIMEOUT);
+                if(!radio_send_and_ack_master_message(TIMEOUT)){
+                    NEXT_STATE = STATE_CAR_SINGLE_MODE;
+                }
                 break;  
         }
         STATE = NEXT_STATE;
