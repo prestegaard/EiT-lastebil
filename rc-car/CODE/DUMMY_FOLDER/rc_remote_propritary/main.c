@@ -285,6 +285,7 @@ int main(void)
                         button_flag = 1;
                         remote_msg.type = MSG_REMOTE_TYPE_TRUCK_POOLING_START;
                         NEXT_STATE = STATE_REMOTE_SMART_MODE;
+                        printf("Type: pooling start\n");
                     }
                 }    
                 //printf("X: %d\t Y: %d \t Button: %d\n", remote_msg.x, remote_msg.y, remote_msg.button);
@@ -309,11 +310,13 @@ int main(void)
                     button_flag = 1;
                     remote_msg.type = MSG_REMOTE_TYPE_TRUCK_POOLING_STOP;
                     NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                    printf("Type: pooling stop\n");
                 }
                 if(radio_send_and_ack_message(TIMEOUT)){
+                    /*
                     if(car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
                         NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
-                    }
+                    }*/
                     break;
                 }
                 else //Connection lost, try to connect again first

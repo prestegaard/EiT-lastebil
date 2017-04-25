@@ -42,7 +42,8 @@ uint32_t ultrasound_get_distance(){
     // Calculate distance in mm
     uint32_t pulse_in_us = (pulse_start_time-pulse_stop_time)/64;
     // Mult by 10 to get mm, divide by 58 gives cm
-    return pulse_in_us * 10 / (58);
+    pulse_in_us = pulse_in_us / 58; 
+    return pulse_in_us * 10 ;
 }
 
 /** @} */

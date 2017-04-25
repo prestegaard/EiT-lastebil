@@ -130,15 +130,17 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                         }
                     }                    
                     else if(message_id == ID_MASTER){
-                        convert_payload_to_remote_message(&master_msg, &rx_payload);
-                        switch(master_msg.type){
+                        switch(extract_type_from_payload(&rx_payload)){
                             case MSG_REMOTE_TYPE_SINGLE_MODE_STEERING:
                                 if(STATE == STATE_CAR_SMART_MODE){
-                                    recevice_message = 1;
+                                    convert_payload_to_remote_message(&master_msg, &rx_payload);
+                                    //printf("master msg\n");
+                                    //recevice_message = 1;
                                 }
+                                break;
                             case MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE:
                                 if(STATE == STATE_CAR_SMART_MODE){
-                                    NEXT_STATE = STATE_CAR_SINGLE_MODE;
+                                    //NEXT_STATE = STATE_CAR_SINGLE_MODE;
                                 }    
 
                         }
@@ -323,10 +325,12 @@ int main(void)
 
             case STATE_CAR_SINGLE_MODE:
                 printf("%s\n","SLAVE SINGLE MODE" );
+                integral = 0;
                 // Get joystick info from remote_msg and set side speeds accordingly
                 steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
-  
+                nrf_delay_ms(1);
+                printf("remote.x: %d\n", remote_msg.x);
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack();
                 break;
@@ -334,16 +338,33 @@ int main(void)
             case STATE_CAR_SMART_MODE:
                 printf("%s\n", "SLAVE SMART MODE");
                 // Calculate foorward speed from ultrasound and feed
-                /*
+                
                 dist = ultrasound_get_distance();
                 kalman_update(&kalman, (double) dist);
                 dist = (int32_t) kalman.x;
-                double speed = get_speed(0.1, dist, master_msg.x, &last_error, &integral);
-                //printf("Dist: %d\t Error: %f\t Speed: %f\t Turn: %d\n:" , dist, last_error, speed, remote_msg.y);
+                dist = dist / 10;
+                dist = dist * 10;
+                
+                double speed = get_speed(0.01, dist, master_msg.x, &last_error, &integral);
+                
+
+                nrf_delay_ms(1);
+                printf("master.x: %d\n", master_msg.x);
+                nrf_delay_ms(1);
+                printf("Dist: %d\t", dist); 
+                nrf_delay_ms(1); 
+                printf("Integral: %f\t \n", integral); 
+                nrf_delay_ms(1);
+                
                 uint32_t tspeed = (uint32_t) speed;
-                steering_speeds(remote_msg.y, tspeed, &left_dir, &right_speed, &left_dir, &right_dir);
+                
+                printf("tspeed: %d\t", tspeed);
+                nrf_delay_ms(1);
+                 printf("Turn: %d\n:", remote_msg.y);
+                
+                steering_speeds(remote_msg.y, tspeed, &left_speed, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
-                */
+                
                 car_msg.type = MSG_CAR_TYPE_SMART_ACK;
                 radio_send_ack();
         }

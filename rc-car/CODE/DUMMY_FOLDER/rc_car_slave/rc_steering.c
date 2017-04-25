@@ -14,19 +14,19 @@ void steering_speeds(uint32_t inturn, uint32_t inthrottle, uint32_t *left_speed,
 	int32_t turn = inturn - 512;
 	int32_t throttle = inthrottle - 512;
 	
-	if(abs(throttle) < 20){
+	if(abs(throttle) < 30){
 		throttle = 0;
 	}
 
-	if(abs(turn) < 10){
+	if(abs(turn) < 30){
 		turn = 0;
 	}
 
-	if(throttle > 0){
+	/*if(throttle > 0){
 		throttle = throttle*0.7 + 150;
     }else if(throttle < 0){
     	throttle = throttle*0.7 - 150;
-    }
+    }*/
 
 
 	int32_t left_side = throttle;

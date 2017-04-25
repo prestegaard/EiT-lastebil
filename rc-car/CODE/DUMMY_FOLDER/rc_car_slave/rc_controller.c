@@ -6,9 +6,9 @@
 #include <string.h>
 
 static int32_t DESIRED_DISTANCE = 100; //mm
-static double Kp = 10;
-static double Kd = 7;
-static double Ki = 4;
+static double Kp = 3;
+static double Kd = 0.08;
+static double Ki = 1;
 static double Kf = 1;
 
 #define max(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -20,10 +20,10 @@ double get_speed(double iteration_time, int32_t measured, int32_t feed, double *
 	*integral += error*iteration_time;
 	double derivative = (error - (*last_error))/iteration_time;
 	*last_error = error;
-	double output =  Kp*error + Kd*derivative + Ki*(*integral) + Kf*feed;
-	if(output > 511){
+	double output =  (Kp*error + Kd*derivative + Ki*(*integral))*1.5 + Kf*feed;
+	if(output > 1023){
 		*integral -= error*iteration_time;
-		output = 511;
+		output = 1023;
 	}else if(output < 0){
 		*integral -=error*iteration_time;
 		output = 0;

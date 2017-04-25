@@ -278,7 +278,8 @@ int main(void)
                 // Get joystick info from remote_msg and set side speeds accordingly
                 steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
-  
+                nrf_delay_ms(1);
+                printf("remote.x: %d\n", remote_msg.x);
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack();
                 break;
