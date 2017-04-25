@@ -63,7 +63,7 @@ static nrf_esb_payload_t        rx_payload;
 
 static remote_packet_t remote_msg;
 static car_packet_t car_msg;
-static master_packet_t master_msg;
+static remote_packet_t master_msg;
 static int my_id;
 static uint8_t STATE;
 static uint8_t NEXT_STATE;
@@ -122,7 +122,6 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                         }
                     }else{
                         switch(extract_type_from_payload(&rx_payload)){
-                          
                             case MSG_CAR_TYPE_SPEED_INFO:
                                 convert_payload_to_master_message(&master_msg, &rx_payload);
                                  if(STATE == STATE_CAR_TRUCK_POOLING_PENDING){
@@ -339,12 +338,11 @@ int main(void)
                     nrf_delay_ms(1);
                 }
                 car_msg.type = MSG_CAR_TYPE_CONNECTED_TO;
-                if(my_id == 0)
-                    my_id = remote_msg.senderID;
                 car_msg.senderID = my_id;
                 radio_send_ack();
                 set_led(my_id);
                 break;
+                
             case STATE_CAR_SINGLE_MODE:
                 printf("%s\n","STATE_CAR_SINGLE_MODE" );
                 // Get joystick info from remote_msg and set side speeds accordingly
@@ -355,91 +353,20 @@ int main(void)
                 radio_send_ack();
                 break;
 
-            case STATE_CAR_TRUCK_POOLING_PENDING:
-                // Get joystick info from remote_msg and set side speeds accordingly
-                printf("%s\n", "POOLING_PENDING");
-                steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir);
-                set_motors(left_speed, right_speed, left_dir, right_dir);
-
-                car_msg.senderID = my_id;
-                car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
-                radio_send_ack(); // to remote
-
-                // create request message
-                nrf_delay_ms(1);
-                car_msg.senderID = 0;
-                car_msg.type = MSG_CAR_TYPE_REQUEST_POOLING;
-                convert_car_message_to_payload(&car_msg, &tx_payload);
-                for(uint8_t i=0; i<1; i++){
-                    //radio_send_ack(); // to master car
-
-                    while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
-                        //NOP
-                    }
-                    nrf_delay_ms(1); 
-                    if (NRF_LOG_PROCESS() == false)
-                    {
-                     __WFE();
-                    }
-                    nrf_delay_ms(10);a
-                }
-                break;
-
-            case STATE_CAR_TRUCK_POOLING_SLAVE:
-                printf("%s\n", "SLAVE");
+            case STATE_CAR_SMART_MODE:
+                printf("%s\n", "STATE_CAR_SMART_MODE");
                 // Calculate foorward speed from ultrasound and feed
                 dist = ultrasound_get_distance();
                 kalman_update(&kalman, (double) dist);
                 dist = (int32_t) kalman.x;
-                master_msg.speed_info = 0;
-                double speed = get_speed(0.1, dist, master_msg.speed_info, &last_error, &integral);
+                double speed = get_speed(0.1, dist, master_msg.x, &last_error, &integral);
                 printf("Dist: %d\t Error: %f\t Speed: %f\t Turn: %d\n:" , dist, last_error, speed, remote_msg.y);
                 uint32_t tspeed = (uint32_t) speed;
                 steering_speeds(remote_msg.y, tspeed, &left_dir, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
-
-                car_msg.senderID = 0;
-                car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE_MASTER;
-                radio_send_ack(); // to master car
-
                 
-                recevice_slave_message_from_remote = 0;
-                uint32_t timeout = TIMEOUT;
-                radio_receive_mode();
-                while(--timeout){
-                    if(recevice_slave_message_from_remote){
-                        break;
-                    }
-                    //NOP
-                    nrf_delay_ms(1);
-                }
-                if(recevice_slave_message_from_remote){
-                    car_msg.senderID = my_id;
-                    car_msg.type = MSG_CAR_TYPE_POOLING_SLAVE;
-                    radio_send_ack(); // to remote       
-                }
-                else{
-                    NEXT_STATE = STATE_CAR_WAIT_FOR_REMOTE;
-                }
-                // create request message
-                break;
-
-            case STATE_CAR_TRUCK_POOLING_MASTER:
-                printf("%s\n", "STATE_CAR_TRUCK_POOLING_MASTER" );
-                
-                steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir);
-                set_motors(left_speed, right_speed, left_dir, right_dir);
-
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack();
-                
-                master_msg.type = MSG_CAR_TYPE_SPEED_INFO;
-                master_msg.senderID = 0;
-                master_msg.speed_info = remote_msg.x;
-                if(!radio_send_and_ack_master_message(TIMEOUT)){
-                    NEXT_STATE = STATE_CAR_SINGLE_MODE;
-                }
-                break;  
         }
         STATE = NEXT_STATE;
     }
