@@ -94,18 +94,14 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                                 receive_ack = 1;
                             }
                             break;
-                        case STATE_REMOTE_TRUCK_POOLING_PENDING :
-                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
+                        case STATE_REMOTE_SMART_MODE :
+                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_SMART_ACK){
                                 receive_ack = 1;
                             }
-                            else if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_POOLING_SLAVE){
+                            else if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
                                 receive_ack = 1;
                             }
                             break;
-                         case STATE_REMOTE_TRUCK_POOLING_ENABLED :
-                            if(car_msg.senderID == remote_msg.senderID && car_msg.type == MSG_CAR_TYPE_POOLING_SLAVE){
-                                receive_ack = 1;
-                            }
                     }
                 }
             }
@@ -275,7 +271,7 @@ int main(void)
                 break;
 
             case STATE_REMOTE_SINGLE_MODE :
-                printf("State: SINGLE MODE\n");
+                printf("State: SINGLE\n");
                 clear_led(3);
                 remote_msg.type    = MSG_REMOTE_TYPE_SINGLE_MODE_STEERING;
                 remote_msg.x       = joystick_read(x_dir);
@@ -291,7 +287,7 @@ int main(void)
                         NEXT_STATE = STATE_REMOTE_SMART_MODE;
                     }
                 }    
-                printf("X: %d\t Y: %d \t Button: %d\n", remote_msg.x, remote_msg.y, remote_msg.button);
+                //printf("X: %d\t Y: %d \t Button: %d\n", remote_msg.x, remote_msg.y, remote_msg.button);
                 if(radio_send_and_ack_message(TIMEOUT)){
                     break;
                 }
@@ -300,7 +296,7 @@ int main(void)
                 break;
 
             case STATE_REMOTE_SMART_MODE :
-                printf("State: TRUCK POOLING PENDING\n");
+                printf("State: SMART\n");
                 set_led(3);
                 remote_msg.type    = MSG_REMOTE_TYPE_SMART_MODE_STEERING;
                 remote_msg.x       = joystick_read(x_dir);
@@ -315,30 +311,16 @@ int main(void)
                     NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
                 }
                 if(radio_send_and_ack_message(TIMEOUT)){
+                    if(car_msg.type == MSG_CAR_TYPE_ACKNOWLEDGE){
+                        NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
+                    }
                     break;
                 }
                 else //Connection lost, try to connect again first
                     NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE; 
                 break;
 
-            case STATE_REMOTE_TRUCK_POOLING_ENABLED :
-                printf("State: TRUCK POOLING ENABLED\n");
 
-
-                remote_msg.type    = MSG_REMOTE_TYPE_TRUCK_POOLING_SLAVE;
-                remote_msg.x       = 0;
-                remote_msg.y       = joystick_read(y_dir);
-                remote_msg.button  = joystick_button_read();
-
-                if(remote_msg.button){
-                    remote_msg.type = MSG_REMOTE_TYPE_TRUCK_POOLING_STOP;
-                    NEXT_STATE = STATE_REMOTE_SINGLE_MODE;
-                }
-
-                if(!radio_send_and_ack_message(TIMEOUT)){
-                    NEXT_STATE = STATE_REMOTE_ADVERTISE_AVAILABLE;
-                }
-                break;
         }
         STATE = NEXT_STATE;
         nrf_delay_ms(DELAYTIME);
