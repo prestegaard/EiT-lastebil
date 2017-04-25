@@ -110,6 +110,10 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                                 recevice_message = 1;
                                 break;
 
+                            case MSG_REMOTE_TYPE_SMART_MODE_STEERING:
+                                recevice_message = 1;
+                                break;    
+
                             case MSG_REMOTE_TYPE_TRUCK_POOLING_START:
                                 if(STATE == STATE_CAR_SINGLE_MODE){
                                     NEXT_STATE = STATE_CAR_SMART_MODE;
@@ -289,7 +293,7 @@ int main(void)
 
     kalman_state kalman = kalman_init(0.1,3,0,0);
     
-    printf("%s\n","STARTING CAR");
+    printf("%s\n","STARTING SLAVE CAR");
     motor_start();
 
 
@@ -305,7 +309,7 @@ int main(void)
             case STATE_CAR_WAIT_FOR_REMOTE:
                 // Wait until a remote is ready to connect.
                 nrf_delay_ms(2);
-                printf("%s\n","STATE_CAR_WAIT_FOR_REMOTE" );
+                printf("%s\n","SLAVE WAIT FOR REMOTE" );
 
                 set_motors(0, 0, 0, 0);
                 while(NEXT_STATE != STATE_CAR_SINGLE_MODE){
@@ -318,7 +322,7 @@ int main(void)
                 break;
 
             case STATE_CAR_SINGLE_MODE:
-                printf("%s\n","STATE_CAR_SINGLE_MODE" );
+                printf("%s\n","SLAVE SINGLE MODE" );
                 // Get joystick info from remote_msg and set side speeds accordingly
                 steering_speeds(remote_msg.y, remote_msg.x, &left_speed, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
@@ -328,17 +332,18 @@ int main(void)
                 break;
 
             case STATE_CAR_SMART_MODE:
-                printf("%s\n", "STATE_CAR_SMART_MODE");
+                printf("%s\n", "SLAVE SMART MODE");
                 // Calculate foorward speed from ultrasound and feed
+                /*
                 dist = ultrasound_get_distance();
                 kalman_update(&kalman, (double) dist);
                 dist = (int32_t) kalman.x;
                 double speed = get_speed(0.1, dist, master_msg.x, &last_error, &integral);
-                printf("Dist: %d\t Error: %f\t Speed: %f\t Turn: %d\n:" , dist, last_error, speed, remote_msg.y);
+                //printf("Dist: %d\t Error: %f\t Speed: %f\t Turn: %d\n:" , dist, last_error, speed, remote_msg.y);
                 uint32_t tspeed = (uint32_t) speed;
                 steering_speeds(remote_msg.y, tspeed, &left_dir, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
-                
+                */
                 car_msg.type = MSG_CAR_TYPE_SMART_ACK;
                 radio_send_ack();
         }

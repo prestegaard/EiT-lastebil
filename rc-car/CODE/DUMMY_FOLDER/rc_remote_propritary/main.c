@@ -69,15 +69,15 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
     switch (p_event->evt_id)
     {
         case NRF_ESB_EVENT_TX_SUCCESS:
-            SEGGER_RTT_WriteString(0, "TX SUCCESS EVENT\n");
+            //SEGGER_RTT_WriteString(0, "TX SUCCESS EVENT\n");
             break;
         case NRF_ESB_EVENT_TX_FAILED:
-            SEGGER_RTT_WriteString(0, "TX FAILED EVENT\n");
+            //SEGGER_RTT_WriteString(0, "TX FAILED EVENT\n");
             (void) nrf_esb_flush_tx();
             (void) nrf_esb_start_tx();
             break;
         case NRF_ESB_EVENT_RX_RECEIVED:
-            SEGGER_RTT_WriteString(0, "RX RECEIVED EVENT\n");
+            //SEGGER_RTT_WriteString(0, "RX RECEIVED EVENT\n");
             while (nrf_esb_read_rx_payload(&rx_payload) == NRF_SUCCESS)
             {
                 if (rx_payload.length > 0 && extract_sender_id_from_payload(&rx_payload) == remote_msg.senderID)
