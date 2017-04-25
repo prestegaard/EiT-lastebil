@@ -94,7 +94,7 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                 if (rx_payload.length > 0)
                 {                      
                     uint32_t message_id = extract_sender_id_from_payload(&rx_payload);
-                    if(message_id == SLAVE)
+                    if(message_id == ID_SLAVE)
                     {
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
                         switch(remote_msg.type)
@@ -252,40 +252,6 @@ void radio_wait_for_new_message(){
     }
 }
 
-uint32_t radio_send_and_ack_master_message(uint32_t timeout){
-    convert_master_message_to_payload(&master_msg, &tx_payload);
-    printf("Wait for master ack\n");   
-    receive_ack = 0;
-    for(uint32_t i=0; i<RETIRES; i++){
-        uint32_t wait = timeout;
-        radio_transmit_mode();
-
-        nrf_delay_ms(2);
-        printf("Master SenderID: %d \n", master_msg.senderID);   
-        convert_master_message_to_payload(&master_msg, &tx_payload);
-        receive_ack = 0;
-
-        while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
-            //NOP
-        }
-    
-        radio_receive_mode();
-        while(--wait > 0){
-            if(receive_ack){
-                break;
-            }
-            nrf_delay_ms(1);
-        }
-        if(receive_ack){
-            printf("After timeout loop\n");        
-            break;
-        }
-        else
-            printf("timeout occred, retry nunber: %d\n", i);
-    }
-    return receive_ack;
-}
-
 
 int main(void)
 {
@@ -373,7 +339,7 @@ int main(void)
                 steering_speeds(remote_msg.y, tspeed, &left_dir, &right_speed, &left_dir, &right_dir);
                 set_motors(left_speed, right_speed, left_dir, right_dir);
                 
-                car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
+                car_msg.type = MSG_CAR_TYPE_SMART_ACK;
                 radio_send_ack();
         }
         STATE = NEXT_STATE;

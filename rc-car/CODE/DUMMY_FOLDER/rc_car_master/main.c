@@ -55,9 +55,10 @@ do { \
 #define RETIRES 3
 #define ID_MASTER 1
 
-static nrf_esb_payload_t        tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
 
-static nrf_esb_payload_t        rx_payload;
+static nrf_esb_payload_t tx_payload = NRF_ESB_CREATE_PAYLOAD(0, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00);
+
+static nrf_esb_payload_t rx_payload;
 
 /*lint -save -esym(40, BUTTON_1) -esym(40, BUTTON_2) -esym(40, BUTTON_3) -esym(40, BUTTON_4) -esym(40, LED_1) -esym(40, LED_2) -esym(40, LED_3) -esym(40, LED_4) */
 
@@ -215,40 +216,6 @@ void radio_wait_for_new_message(){
     }
 }
 
-uint32_t radio_send_and_ack_master_message(uint32_t timeout){
-    convert_master_message_to_payload(&master_msg, &tx_payload);
-    printf("Wait for master ack\n");   
-    receive_ack = 0;
-    for(uint32_t i=0; i<RETIRES; i++){
-        uint32_t wait = timeout;
-        radio_transmit_mode();
-
-        nrf_delay_ms(2);
-        printf("Master SenderID: %d \n", master_msg.senderID);   
-        convert_master_message_to_payload(&master_msg, &tx_payload);
-        receive_ack = 0;
-
-        while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
-            //NOP
-        }
-    
-        radio_receive_mode();
-        while(--wait > 0){
-            if(receive_ack){
-                break;
-            }
-            nrf_delay_ms(1);
-        }
-        if(receive_ack){
-            printf("After timeout loop\n");        
-            break;
-        }
-        else
-            printf("timeout occred, retry nunber: %d\n", i);
-    }
-    return receive_ack;
-}
-
 
 int main(void)
 {
@@ -269,7 +236,6 @@ int main(void)
     car_msg.type = MSG_CAR_TYPE_CONNECTED_TO;
 
     nrf_esb_start_rx();
-    int8_t i = 0;
 
 
     uint32_t left_speed = 400;
@@ -316,10 +282,11 @@ int main(void)
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack();
                 break;
-
+        }
         STATE = NEXT_STATE;
     }
 }
+
 
 
 /*lint -restore */
