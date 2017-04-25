@@ -5,11 +5,18 @@
 #include <math.h>
 #include <string.h>
 
+
+/*
+kp 3
+kd 0.1
+ki 0
+kf 0.8
+*/
 static int32_t DESIRED_DISTANCE = 100; //mm
-static double Kp = 3;
-static double Kd = 0.08;
-static double Ki = 1;
-static double Kf = 1;
+static double Kp = 3.3;
+static double Kd = 0.12;
+static double Ki = 0.1;
+static double Kf = 0.8;
 
 #define max(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define min(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -20,7 +27,7 @@ double get_speed(double iteration_time, int32_t measured, int32_t feed, double *
 	*integral += error*iteration_time;
 	double derivative = (error - (*last_error))/iteration_time;
 	*last_error = error;
-	double output =  (Kp*error + Kd*derivative + Ki*(*integral))*1.5 + Kf*feed;
+	double output =  (Kp*error + Kd*derivative + Ki*(*integral)) + Kf*feed;
 	if(output > 1023){
 		*integral -= error*iteration_time;
 		output = 1023;

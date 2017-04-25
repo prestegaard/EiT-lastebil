@@ -331,6 +331,8 @@ int main(void)
                 set_motors(left_speed, right_speed, left_dir, right_dir);
                 nrf_delay_ms(1);
                 printf("remote.x: %d\n", remote_msg.x);
+                nrf_delay_ms(1);
+                printf("remote.y: %d\n", remote_msg.y);
                 car_msg.type = MSG_CAR_TYPE_ACKNOWLEDGE;
                 radio_send_ack();
                 break;

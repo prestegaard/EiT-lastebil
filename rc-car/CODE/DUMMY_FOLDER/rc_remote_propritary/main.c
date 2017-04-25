@@ -277,6 +277,9 @@ int main(void)
                 remote_msg.x       = joystick_read(x_dir);
                 remote_msg.y       = joystick_read(y_dir);
                 remote_msg.button  = joystick_button_read();
+                nrf_delay_ms(1);
+                printf("x speed: %d\n", remote_msg.x);
+                nrf_delay_ms(1);
                 if(my_id == ID_SLAVE){
                     if(remote_msg.button == 0 && button_flag == 1){
                         button_flag = 0;
