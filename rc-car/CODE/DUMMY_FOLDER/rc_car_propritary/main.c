@@ -92,7 +92,7 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                 if (rx_payload.length > 0)
                 {                      
 
-                    if(extract_sender_id_from_payload(&rx_payload) == car_msg.senderID){
+                    if(extract_sender_id_from_payload(&rx_payload) == my_id){
                         convert_payload_to_remote_message(&remote_msg, &rx_payload);
                         switch(remote_msg.type){
                             case MSG_REMOTE_TYPE_SINGLE_MODE_STEERING:
@@ -127,8 +127,8 @@ void nrf_esb_event_handler(nrf_esb_evt_t const * p_event)
                         switch(extract_type_from_payload(&rx_payload)){
                             case MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE:
                                 nrf_delay_ms(2);
-                                printf("%s\n","MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE");
-                                if(STATE == STATE_CAR_WAIT_FOR_REMOTE){
+                                 if(STATE == STATE_CAR_WAIT_FOR_REMOTE && (my_id == 0 || remote_msg.senderID == my_id) ){
+                                    printf("%s\n","MSG_REMOTE_TYPE_ADVERTISE_AVAILABLE");
                                     nrf_delay_ms(2);
                                     printf("%s\n","NExt -> STATE_CAR_SINGLE_MODEs");    
                                     convert_payload_to_remote_message(&remote_msg, &rx_payload);
@@ -326,7 +326,6 @@ int main(void)
     nrf_esb_start_rx();
     int8_t i = 0;
 
-    my_id = 0;
 
     uint32_t left_speed = 400;
     uint32_t right_speed = 0;
@@ -347,6 +346,7 @@ int main(void)
 
     nrf_delay_ms(2000);
 
+    my_id = 0;
 
     while (true)
     {
@@ -357,15 +357,14 @@ int main(void)
                 // Wait until a remote is ready to connect.
                 nrf_delay_ms(2);
                 printf("%s\n","STATE_CAR_WAIT_FOR_REMOTE" );
-                //while(NEXT_STATE != STATE_CAR_SINGLE_MODE);
-                my_id = 0;
-                car_msg.senderID = my_id;
+
                 set_motors(0, 0, 0, 0);
                 while(NEXT_STATE != STATE_CAR_SINGLE_MODE){
                     nrf_delay_ms(1);
                 }
                 car_msg.type = MSG_CAR_TYPE_CONNECTED_TO;
-                my_id = remote_msg.senderID;
+                if(my_id == 0)
+                    my_id = remote_msg.senderID;
                 car_msg.senderID = my_id;
                 radio_send_ack();
                 set_led(my_id);
@@ -394,9 +393,19 @@ int main(void)
                 nrf_delay_ms(1);
                 car_msg.senderID = 0;
                 car_msg.type = MSG_CAR_TYPE_REQUEST_POOLING;
+                convert_car_message_to_payload(&car_msg, &tx_payload);
                 for(uint8_t i=0; i<5; i++){
-                    radio_send_ack(); // to master car
-                    nrf_delay_ms(10);
+                    //radio_send_ack(); // to master car
+
+                    while(nrf_esb_write_payload(&tx_payload) != NRF_SUCCESS){
+                        //NOP
+                    }
+                    nrf_delay_ms(1); 
+                    /*if (NRF_LOG_PROCESS() == false)
+                    {
+                     __WFE();
+                    }
+                    nrf_delay_ms(10);*/
                 }
                 break;
 
